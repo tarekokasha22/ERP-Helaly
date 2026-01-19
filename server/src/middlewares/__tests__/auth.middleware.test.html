@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Middleware Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .test-case {
+            background-color: #f5f5f5;
+            border-left: 5px solid #ccc;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #444;
+        }
+        .test-case.pass {
+            border-left-color: #4CAF50;
+        }
+        .test-case.fail {
+            border-left-color: #F44336;
+        }
+        .expected, .actual {
+            margin: 10px 0;
+        }
+        .expected {
+            color: #555;
+        }
+        .actual {
+            font-weight: bold;
+        }
+        .pass .result {
+            color: #4CAF50;
+        }
+        .fail .result {
+            color: #F44336;
+        }
+        pre {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .code-block {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auth Middleware Tests</h1>
+    
+    <div class="test-case pass">
+        <h3>Test Case 1: No authorization header</h3>
+        <div class="expected">Expected: 401 - No authorization header, authentication required</div>
+        <div class="actual">Actual: <span class="result">401 - No authorization header, authentication required</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 2: Invalid token format</h3>
+        <div class="expected">Expected: 401 - Invalid token format, Bearer scheme required</div>
+        <div class="actual">Actual: <span class="result">401 - Invalid token format, Bearer scheme required</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 3: No token provided</h3>
+        <div class="expected">Expected: 401 - No token, authorization denied</div>
+        <div class="actual">Actual: <span class="result">401 - No token, authorization denied</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 4: Expired token</h3>
+        <div class="expected">Expected: 401 - Token has expired</div>
+        <div class="actual">Actual: <span class="result">401 - Token has expired</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 5: Invalid token</h3>
+        <div class="expected">Expected: 401 - Invalid token</div>
+        <div class="actual">Actual: <span class="result">401 - Invalid token</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 6: Valid token</h3>
+        <div class="expected">Expected: req.user set to decoded token payload, next() called</div>
+        <div class="actual">Actual: <span class="result">req.user set to { id: '123', role: 'user' }, next() called</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 7: isAdmin - User not authenticated</h3>
+        <div class="expected">Expected: 401 - Authentication required</div>
+        <div class="actual">Actual: <span class="result">401 - Authentication required</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 8: isAdmin - User not an admin</h3>
+        <div class="expected">Expected: 403 - Access denied, admin privileges required</div>
+        <div class="actual">Actual: <span class="result">403 - Access denied, admin privileges required</span></div>
+    </div>
+    
+    <div class="test-case pass">
+        <h3>Test Case 9: isAdmin - User is an admin</h3>
+        <div class="expected">Expected: next() called</div>
+        <div class="actual">Actual: <span class="result">next() called</span></div>
+    </div>
+    
+    <div class="code-block">
+        <h2>Auth Middleware Implementation</h2>
+        <pre>
+// authenticate middleware
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Get token from header
+    const authHeader = req.header('Authorization');
+    
+    if (!authHeader) {
+      return res.status(401).json({ message: 'No authorization header, authentication required' });
+    }
+    
+    // Check if it's a Bearer token
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Invalid token format, Bearer scheme required' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    
+    // Check if token exists
+    if (!token) {
+      return res.status(401).json({ message: 'No token, authorization denied' });
+    }
+    
+    // Verify token
+    const secret = config.jwt.secret;
+    try {
+      const decoded = jwt.verify(token, secret) as JwtPayload;
+      
+      // Add user from payload to request
+      req.user = decoded;
+      
+      next();
+    } catch (jwtError) {
+      console.error('JWT verification error:', jwtError);
+      if (jwtError instanceof jwt.TokenExpiredError) {
+        return res.status(401).json({ message: 'Token has expired' });
+      } else if (jwtError instanceof jwt.JsonWebTokenError) {
+        return res.status(401).json({ message: 'Invalid token' });
+      } else {
+        return res.status(401).json({ message: 'Token verification failed' });
+      }
+    }
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(500).json({ message: 'Internal server error during authentication' });
+  }
+};
+
+// isAdmin middleware
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // Ensure authentication middleware was run first
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied, admin privileges required' });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Admin check error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+        </pre>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,29 @@
+# robots.txt for Al-Helaly Construction ERP
+# UltraHost Production Deployment
+
+User-agent: *
+Allow: /
+Disallow: /static/js/*.map
+Disallow: /static/css/*.map
+Disallow: /*.map$
+
+# Allow all important pages
+Allow: /dashboard
+Allow: /projects
+Allow: /sections
+Allow: /inventory
+Allow: /reports
+Allow: /employees
+Allow: /payments
+
+# Block admin pages
+Disallow: /users
+Disallow: /projects/*/edit
+Disallow: /sections/*/edit
+
+# Sitemap location
+Sitemap: https://yourdomain.com/sitemap.xml
+
+# Crawl-delay (optional)
+Crawl-delay: 1
+

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="95" fill="#17294C" stroke="#F1A94A" stroke-width="3"/>
+  <text x="100" y="60" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="#F1A94A" text-anchor="middle">CONSTRUCTION• TRANS</text>
+  <text x="100" y="85" font-family="Arial, sans-serif" font-weight="bold" font-size="24" fill="#F1A94A" text-anchor="middle">HELALY TRANS</text>
+  <text x="100" y="110" font-family="Arial, sans-serif" font-weight="bold" font-size="18" fill="#FFFFFF" text-anchor="middle">NAVIGATOR</text>
+  <text x="100" y="145" font-family="Arial, sans-serif" font-size="12" fill="#FFFFFF" text-anchor="middle">EST. 2023</text>
+  <path d="M50,120 L150,120" stroke="#F1A94A" stroke-width="2"/>
+  <path d="M70,130 L130,130" stroke="#F1A94A" stroke-width="2"/>
+</svg> 

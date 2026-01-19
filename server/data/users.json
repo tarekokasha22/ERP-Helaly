@@ -1,0 +1,14 @@
+[
+  {
+    "_id": "admin001",
+    "name": "مدير النظام",
+    "username": "admin",
+    "email": "admin@helaly.com",
+    "password": "$2a$10$xANTHwxWTNvTlVpkMbfRkuuKvFkak9mPJGd9LnbyyiOk03qIpZNZ2",
+    "role": "admin",
+    "country": "egypt",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2025-08-09T07:16:10.639Z",
+    "lastLogin": "2025-08-09T07:16:10.639Z"
+  }
+]

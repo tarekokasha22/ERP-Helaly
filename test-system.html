@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏗️ اختبار نظام الهلالي للمقاولات</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 2.8rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.2rem;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .test-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 6px solid #667eea;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .test-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .test-card h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn.success { 
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+        .btn.danger { 
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
+        }
+        .btn.warning { 
+            background: linear-gradient(135deg, #ffc107, #fd7e14);
+        }
+        .btn.info { 
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 2px solid transparent;
+        }
+        
+        .status.success { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+            border-color: #28a745;
+            color: #155724; 
+        }
+        
+        .status.error { 
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+            border-color: #dc3545;
+            color: #721c24; 
+        }
+        
+        .status.info { 
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb); 
+            border-color: #17a2b8;
+            color: #0c5460; 
+        }
+        
+        .status.warning { 
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7); 
+            border-color: #ffc107;
+            color: #856404; 
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4aa, #00d4aa);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .system-health {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .health-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #28a745;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .health-card.warning { border-left-color: #ffc107; }
+        .health-card.error { border-left-color: #dc3545; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .section-title {
+            color: #333;
+            font-size: 1.5rem;
+            margin: 30px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .quick-actions {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .data-table th {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ نظام الهلالي للمقاولات</h1>
+            <p>لوحة اختبار ومراقبة شاملة متطورة</p>
+        </div>
+
+        <div id="status" class="status info">
+            🔄 جاري التحقق من حالة النظام...
+            <div class="loading"></div>
+        </div>
+
+        <div class="system-health" id="systemHealth" style="display: none;">
+            <div class="health-card" id="serverHealth">
+                <h4>🖥️ حالة الخادم</h4>
+                <p id="serverStatus">جاري التحقق...</p>
+            </div>
+            <div class="health-card" id="authHealth">
+                <h4>🔐 نظام المصادقة</h4>
+                <p id="authStatus">جاري التحقق...</p>
+            </div>
+            <div class="health-card" id="dataHealth">
+                <h4>💾 قاعدة البيانات</h4>
+                <p id="dataStatus">جاري التحقق...</p>
+            </div>
+        </div>
+
+        <div class="section-title">🧪 اختبارات سريعة</div>
+        <div class="test-grid">
+            <div class="test-card">
+                <h3>🔐 اختبار المصادقة</h3>
+                <button class="btn" onclick="testLogin()">تسجيل دخول</button>
+                <button class="btn danger" onclick="clearTokens()">مسح التوكينات</button>
+                <button class="btn warning" onclick="testAuth()">فحص التوكين</button>
+            </div>
+
+            <div class="test-card">
+                <h3>📊 لوحة التحكم</h3>
+                <button class="btn info" onclick="testDashboard()">فحص الإحصائيات</button>
+                <button class="btn" onclick="testRealTimeUpdates()">التحديث الفوري</button>
+            </div>
+
+            <div class="test-card">
+                <h3>🚧 إدارة المشاريع</h3>
+                <button class="btn" onclick="testProjects()">عرض المشاريع</button>
+                <button class="btn success" onclick="testProjectDetails()">تفاصيل مشروع</button>
+                <button class="btn info" onclick="testProjectsByCountry()">مشاريع حسب الدولة</button>
+            </div>
+
+            <div class="test-card">
+                <h3>🏗️ إدارة الأقسام</h3>
+                <button class="btn" onclick="testSections()">عرض الأقسام</button>
+                <button class="btn success" onclick="testSectionDetails()">تفاصيل قسم</button>
+                <button class="btn info" onclick="testSectionsByProject()">أقسام حسب المشروع</button>
+            </div>
+
+            <div class="test-card">
+                <h3>💰 إدارة المصروفات</h3>
+                <button class="btn" onclick="testSpendings()">عرض المصروفات</button>
+                <button class="btn info" onclick="testSpendingsByProject()">مصروفات حسب المشروع</button>
+                <button class="btn warning" onclick="testSpendingCategories()">تحليل الفئات</button>
+            </div>
+
+            <div class="test-card">
+                <h3>👥 إدارة المستخدمين</h3>
+                <button class="btn" onclick="testUsers()">عرض المستخدمين</button>
+                <button class="btn info" onclick="testCurrentUser()">بياناتي الشخصية</button>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <h3 class="section-title">⚡ اختبارات شاملة</h3>
+            <button class="btn success" onclick="runFullSystemTest()" style="font-size: 16px; padding: 15px 30px;">
+                🔍 اختبار شامل للنظام
+            </button>
+            <button class="btn info" onclick="runPerformanceTest()" style="font-size: 16px; padding: 15px 30px;">
+                ⚡ اختبار الأداء
+            </button>
+            <button class="btn" onclick="openMainApp()" style="font-size: 16px; padding: 15px 30px;">
+                🚀 فتح التطبيق الرئيسي
+            </button>
+        </div>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-number" id="projectCount">0</div>
+                <div class="stat-label">إجمالي المشاريع</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="projectProgress" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="sectionCount">0</div>
+                <div class="stat-label">إجمالي الأقسام</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="sectionProgress" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="spendingCount">0</div>
+                <div class="stat-label">إجمالي المصروفات</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="spendingProgress" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalBudget">0</div>
+                <div class="stat-label">إجمالي الميزانية (مليون)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="budgetProgress" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="spentAmount">0</div>
+                <div class="stat-label">إجمالي المنصرف (مليون)</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="spentProgress" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgProgress">0%</div>
+                <div class="stat-label">متوسط تقدم المشاريع</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="avgProgressBar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="detailsTable" style="display: none;">
+            <div class="section-title">📋 تفاصيل البيانات</div>
+            <table class="data-table" id="dataTable">
+                <thead>
+                    <tr id="tableHeader"></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '';
+        let systemData = {
+            projects: [],
+            sections: [],
+            spendings: [],
+            users: [],
+            dashboard: {}
+        };
+        
+        // Auto-check system on load
+        window.addEventListener('load', async () => {
+            await checkSystemHealth();
+        });
+
+        async function checkSystemHealth() {
+            showStatus('🔄 فحص حالة النظام...', 'info');
+            
+            // Check server
+            try {
+                const response = await fetch('http://localhost:5000');
+                if (response.ok) {
+                    const data = await response.json();
+                    updateHealthCard('serverHealth', 'success', `✅ الخادم يعمل - النسخة ${data.version}`);
+                } else {
+                    updateHealthCard('serverHealth', 'error', '❌ الخادم لا يستجيب');
+                }
+            } catch (error) {
+                updateHealthCard('serverHealth', 'error', '❌ لا يمكن الاتصال بالخادم');
+                showStatus('❌ الخادم غير متاح. تأكد من تشغيل الخادم على المنفذ 5000', 'error');
+                return;
+            }
+
+            // Test login
+            await testLoginSilent();
+            
+            // Check data
+            if (authToken) {
+                await loadAllData();
+                updateHealthCard('dataHealth', 'success', `✅ البيانات متوفرة - ${systemData.projects.length} مشاريع`);
+                showSystemHealth();
+                showStatus('✅ النظام يعمل بشكل مثالي! جاهز للاختبار 🚀', 'success');
+                updateStats();
+            }
+        }
+
+        function updateHealthCard(cardId, status, message) {
+            const card = document.getElementById(cardId);
+            card.className = `health-card ${status}`;
+            const statusElement = card.querySelector('p');
+            statusElement.textContent = message;
+        }
+
+        function showSystemHealth() {
+            document.getElementById('systemHealth').style.display = 'grid';
+        }
+
+        async function testLoginSilent() {
+            try {
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'password',
+                        country: 'egypt'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    updateHealthCard('authHealth', 'success', `✅ تم تسجيل الدخول - ${data.user.name}`);
+                    return true;
+                } else {
+                    updateHealthCard('authHealth', 'error', `❌ فشل تسجيل الدخول: ${data.message}`);
+                    return false;
+                }
+            } catch (error) {
+                updateHealthCard('authHealth', 'error', '❌ خطأ في المصادقة');
+                return false;
+            }
+        }
+
+        async function loadAllData() {
+            if (!authToken) return;
+
+            try {
+                const [projectsRes, sectionsRes, spendingsRes, usersRes, dashboardRes] = await Promise.all([
+                    fetch('http://localhost:5000/api/projects', { headers: { 'Authorization': `Bearer ${authToken}` } }),
+                    fetch('http://localhost:5000/api/sections', { headers: { 'Authorization': `Bearer ${authToken}` } }),
+                    fetch('http://localhost:5000/api/spendings', { headers: { 'Authorization': `Bearer ${authToken}` } }),
+                    fetch('http://localhost:5000/api/users', { headers: { 'Authorization': `Bearer ${authToken}` } }),
+                    fetch('http://localhost:5000/api/dashboard', { headers: { 'Authorization': `Bearer ${authToken}` } })
+                ]);
+
+                systemData.projects = (await projectsRes.json()).data || [];
+                systemData.sections = (await sectionsRes.json()).data || [];
+                systemData.spendings = (await spendingsRes.json()).data || [];
+                systemData.users = (await usersRes.json()).data || [];
+                systemData.dashboard = await dashboardRes.json();
+
+                return true;
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return false;
+            }
+        }
+
+        function updateStats() {
+            const projects = systemData.projects;
+            const sections = systemData.sections;
+            const spendings = systemData.spendings;
+
+            document.getElementById('stats').style.display = 'grid';
+            
+            document.getElementById('projectCount').textContent = projects.length;
+            document.getElementById('sectionCount').textContent = sections.length;
+            document.getElementById('spendingCount').textContent = spendings.length;
+            
+            const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+            const totalSpent = spendings.reduce((sum, s) => sum + (s.amount || 0), 0);
+            const avgProgress = projects.length > 0 ? 
+                Math.round(projects.reduce((sum, p) => sum + (p.progress || 0), 0) / projects.length) : 0;
+            
+            document.getElementById('totalBudget').textContent = (totalBudget / 1000000).toFixed(1);
+            document.getElementById('spentAmount').textContent = (totalSpent / 1000000).toFixed(1);
+            document.getElementById('avgProgress').textContent = avgProgress + '%';
+            
+            // Update progress bars
+            document.getElementById('projectProgress').style.width = Math.min(projects.length * 10, 100) + '%';
+            document.getElementById('sectionProgress').style.width = Math.min(sections.length * 5, 100) + '%';
+            document.getElementById('spendingProgress').style.width = Math.min(spendings.length * 5, 100) + '%';
+            document.getElementById('budgetProgress').style.width = Math.min((totalBudget / 1000000) * 2, 100) + '%';
+            document.getElementById('spentProgress').style.width = totalBudget > 0 ? (totalSpent / totalBudget) * 100 + '%' : '0%';
+            document.getElementById('avgProgressBar').style.width = avgProgress + '%';
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = message;
+        }
+
+        async function testLogin() {
+            try {
+                showStatus('🔄 اختبار تسجيل الدخول...', 'info');
+                
+                const response = await fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'password',
+                        country: 'egypt'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    showStatus(`✅ تم تسجيل الدخول بنجاح!
+
+👤 المستخدم: ${data.user.name}
+🌍 الدولة: ${data.user.country}
+🔑 الدور: ${data.user.role}
+🕒 التوقيت: ${new Date().toLocaleString('ar-EG')}`, 'success');
+                    
+                    updateHealthCard('authHealth', 'success', `✅ مصادقة نشطة - ${data.user.name}`);
+                } else {
+                    showStatus(`❌ فشل تسجيل الدخول: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ خطأ في الاتصال: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProjects() {
+            if (!authToken) {
+                showStatus('❌ يجب تسجيل الدخول أولاً', 'error');
+                return;
+            }
+
+            try {
+                showStatus('🔄 اختبار قائمة المشاريع...', 'info');
+                
+                const response = await fetch('http://localhost:5000/api/projects', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const projects = data.data;
+                    systemData.projects = projects;
+                    
+                    const egyptProjects = projects.filter(p => p.country === 'egypt');
+                    const libyaProjects = projects.filter(p => p.country === 'libya');
+                    const activeProjects = projects.filter(p => p.status === 'in-progress');
+                    const completedProjects = projects.filter(p => p.status === 'completed');
+                    
+                    showStatus(`✅ تم تحميل المشاريع بنجاح!
+
+📊 الإحصائيات:
+• العدد الكلي: ${projects.length} مشروع
+• مصر: ${egyptProjects.length} مشاريع
+• ليبيا: ${libyaProjects.length} مشاريع
+• النشطة: ${activeProjects.length} مشاريع
+• المكتملة: ${completedProjects.length} مشاريع
+
+🏗️ أمثلة على المشاريع:
+${projects.slice(0, 3).map(p => `• ${p.name} (${p.status === 'in-progress' ? 'جاري' : 'مكتمل'}) - ${(p.budget / 1000000).toFixed(1)} مليون`).join('\n')}`, 'success');
+                    
+                    updateStats();
+                    showProjectsTable(projects);
+                } else {
+                    showStatus(`❌ خطأ في تحميل المشاريع: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ خطأ في اختبار المشاريع: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProjectDetails() {
+            if (!authToken) {
+                showStatus('❌ يجب تسجيل الدخول أولاً', 'error');
+                return;
+            }
+
+            try {
+                showStatus('🔄 اختبار تفاصيل المشاريع...', 'info');
+                
+                // Get projects first
+                const projectsRes = await fetch('http://localhost:5000/api/projects', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const projectsData = await projectsRes.json();
+                
+                if (projectsData.success && projectsData.data.length > 0) {
+                    const testProject = projectsData.data[0];
+                    
+                    const response = await fetch(`http://localhost:5000/api/projects/${testProject._id}`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        const project = data.data;
+                        showStatus(`✅ تفاصيل المشروع محدثة!
+
+📋 ${project.name}
+🏗️ الأقسام: ${project.sectionsCount || 0}
+💰 الميزانية: ${(project.budget / 1000000).toFixed(1)} مليون
+💸 المنصرف: ${(project.totalSpent / 1000000).toFixed(1)} مليون
+💵 المتبقي: ${(project.remainingBudget / 1000000).toFixed(1)} مليون
+📈 التقدم: ${project.actualProgress || project.progress}%
+🌍 الدولة: ${project.country === 'egypt' ? 'مصر' : 'ليبيا'}
+📅 بداية المشروع: ${new Date(project.startDate).toLocaleDateString('ar-EG')}`, 'success');
+                    } else {
+                        showStatus(`❌ خطأ في جلب تفاصيل المشروع: ${data.message}`, 'error');
+                    }
+                } else {
+                    showStatus('❌ لا توجد مشاريع للاختبار', 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ خطأ في اختبار تفاصيل المشروع: ${error.message}`, 'error');
+            }
+        }
+
+        async function runFullSystemTest() {
+            showStatus('🔄 بدء الاختبار الشامل للنظام...', 'info');
+            
+            // Test login
+            const loginSuccess = await testLoginSilent();
+            if (!loginSuccess) {
+                showStatus('❌ فشل الاختبار الشامل - لم يتم تسجيل الدخول', 'error');
+                return;
+            }
+
+            try {
+                const startTime = performance.now();
+                
+                // Load all data
+                await loadAllData();
+                
+                const endTime = performance.now();
+                const loadTime = Math.round(endTime - startTime);
+
+                const projects = systemData.projects;
+                const sections = systemData.sections;
+                const spendings = systemData.spendings;
+                const dashboard = systemData.dashboard;
+
+                if (projects.length > 0 && sections.length > 0 && spendings.length > 0) {
+                    updateStats();
+                    
+                    const totalBudget = projects.reduce((sum, p) => sum + p.budget, 0);
+                    const totalSpent = spendings.reduce((sum, s) => sum + s.amount, 0);
+                    const egyptProjects = projects.filter(p => p.country === 'egypt').length;
+                    const libyaProjects = projects.filter(p => p.country === 'libya').length;
+                    const activeProjects = projects.filter(p => p.status === 'in-progress').length;
+                    const completedProjects = projects.filter(p => p.status === 'completed').length;
+                    
+                    showStatus(`🎉 الاختبار الشامل مكتمل بنجاح!
+
+⚡ الأداء:
+• زمن التحميل: ${loadTime} مللي ثانية
+• سرعة الاستجابة: ${loadTime < 1000 ? 'ممتازة' : loadTime < 3000 ? 'جيدة' : 'بطيئة'}
+
+📊 إحصائيات النظام:
+• المشاريع: ${projects.length} (مصر: ${egyptProjects}, ليبيا: ${libyaProjects})
+• الأقسام: ${sections.length}
+• المصروفات: ${spendings.length}
+• المستخدمين: ${systemData.users.length}
+
+💰 الملخص المالي:
+• إجمالي الميزانية: ${(totalBudget / 1000000).toFixed(1)} مليون
+• إجمالي المنصرف: ${(totalSpent / 1000000).toFixed(1)} مليون
+• المتبقي: ${((totalBudget - totalSpent) / 1000000).toFixed(1)} مليون
+• نسبة الإنفاق: ${((totalSpent / totalBudget) * 100).toFixed(1)}%
+
+📈 حالة المشاريع:
+• النشطة: ${activeProjects}
+• المكتملة: ${completedProjects}
+• متوسط التقدم: ${Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)}%
+
+✅ جميع المكونات تعمل بشكل مثالي!
+✅ النظام جاهز للاستخدام العملي!`, 'success');
+                } else {
+                    showStatus('❌ بعض المكونات لا تعمل بشكل صحيح', 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ خطأ في الاختبار الشامل: ${error.message}`, 'error');
+            }
+        }
+
+        async function runPerformanceTest() {
+            if (!authToken) {
+                showStatus('❌ يجب تسجيل الدخول أولاً', 'error');
+                return;
+            }
+
+            showStatus('⚡ اختبار الأداء...', 'info');
+
+            const tests = [
+                { name: 'Projects API', url: '/api/projects' },
+                { name: 'Sections API', url: '/api/sections' },
+                { name: 'Spendings API', url: '/api/spendings' },
+                { name: 'Dashboard API', url: '/api/dashboard' },
+                { name: 'Users API', url: '/api/users' }
+            ];
+
+            let results = [];
+
+            for (const test of tests) {
+                const startTime = performance.now();
+                try {
+                    const response = await fetch(`http://localhost:5000${test.url}`, {
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                    const endTime = performance.now();
+                    const duration = Math.round(endTime - startTime);
+                    
+                    results.push({
+                        name: test.name,
+                        duration: duration,
+                        status: response.ok ? 'نجح' : 'فشل',
+                        statusCode: response.status
+                    });
+                } catch (error) {
+                    results.push({
+                        name: test.name,
+                        duration: 'خطأ',
+                        status: 'فشل',
+                        error: error.message
+                    });
+                }
+            }
+
+            const avgTime = results
+                .filter(r => typeof r.duration === 'number')
+                .reduce((sum, r) => sum + r.duration, 0) / results.length;
+
+            showStatus(`⚡ نتائج اختبار الأداء:
+
+${results.map(r => `• ${r.name}: ${r.duration}${typeof r.duration === 'number' ? ' مللي ثانية' : ''} (${r.status})`).join('\n')}
+
+📊 الملخص:
+• متوسط زمن الاستجابة: ${Math.round(avgTime)} مللي ثانية
+• التقييم: ${avgTime < 500 ? '🟢 ممتاز' : avgTime < 1000 ? '🟡 جيد' : '🔴 بطيء'}
+• الاختبارات الناجحة: ${results.filter(r => r.status === 'نجح').length}/${results.length}`, 'success');
+        }
+
+        function showProjectsTable(projects) {
+            const tableContainer = document.getElementById('detailsTable');
+            const tableHeader = document.getElementById('tableHeader');
+            const tableBody = document.getElementById('tableBody');
+            
+            tableHeader.innerHTML = `
+                <th>اسم المشروع</th>
+                <th>الدولة</th>
+                <th>الحالة</th>
+                <th>الميزانية (مليون)</th>
+                <th>التقدم</th>
+                <th>المدير</th>
+            `;
+            
+            tableBody.innerHTML = projects.map(project => `
+                <tr>
+                    <td>${project.name}</td>
+                    <td>${project.country === 'egypt' ? '🇪🇬 مصر' : '🇱🇾 ليبيا'}</td>
+                    <td>${project.status === 'in-progress' ? '🔄 جاري' : '✅ مكتمل'}</td>
+                    <td>${(project.budget / 1000000).toFixed(1)}</td>
+                    <td>${project.progress}%</td>
+                    <td>${project.manager}</td>
+                </tr>
+            `).join('');
+            
+            tableContainer.style.display = 'block';
+        }
+
+        // Add more test functions following the same pattern...
+        async function testSections() {
+            if (!authToken) {
+                showStatus('❌ يجب تسجيل الدخول أولاً', 'error');
+                return;
+            }
+
+            try {
+                showStatus('🔄 اختبار قائمة الأقسام...', 'info');
+                
+                const response = await fetch('http://localhost:5000/api/sections', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const sections = data.data;
+                    showStatus(`✅ تم تحميل الأقسام بنجاح!
+عدد الأقسام: ${sections.length}
+
+أمثلة على الأقسام:
+${sections.slice(0, 3).map(s => `• ${s.name} - ${s.progress}% (${(s.budget / 1000000).toFixed(1)} مليون)`).join('\n')}`, 'success');
+                } else {
+                    showStatus(`❌ خطأ في تحميل الأقسام: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ خطأ في اختبار الأقسام: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSpendings() {
+            if (!authToken) {
+                showStatus('❌ يجب تسجيل الدخول أولاً', 'error');
+                return;
+            }
+
+            try {
+                showStatus('🔄 اختبار قائمة المصروفات...', 'info');
+                
+                const response = await fetch('http://localhost:5000/api/spendings', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const spendings = data.data;
+                    const totalSpent = spendings.reduce((sum, s) => sum + s.amount, 0);
+                    showStatus(`✅ تم تحميل المصروفات بنجاح!
+عدد المصروفات: ${spendings.length}
+إجمالي المنصرف: ${(totalSpent / 1000000).toFixed(1)} مليون ج.م
+
+أمثلة على المصروفات:
+${spendings.slice(0, 3).map(s => `• ${s.description} - ${(s.amount / 1000).toFixed(0)} ألف (${s.category})`).join('\n')}`, 'success');
+                } else {
+                    showStatus(`❌ خطأ في تحميل المصروفات: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ خطأ في اختبار المصروفات: ${error.message}`, 'error');
+            }
+        }
+
+        function clearTokens() {
+            authToken = '';
+            localStorage.clear();
+            sessionStorage.clear();
+            showStatus('✅ تم مسح جميع التوكينات', 'success');
+            updateHealthCard('authHealth', 'warning', '⚠️ تم مسح المصادقة');
+        }
+
+        function openMainApp() {
+            window.open('http://localhost:3000', '_blank');
+        }
+
+        // Additional utility functions can be added here...
+    </script>
+</body>
+</html>

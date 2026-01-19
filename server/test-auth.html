@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Middleware Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            background-color: #f1f1f1;
+            border-left: 4px solid #2196F3;
+            padding: 10px;
+            margin: 10px 0;
+            overflow-wrap: break-word;
+        }
+        .success {
+            border-left-color: #4CAF50;
+        }
+        .error {
+            border-left-color: #F44336;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        select {
+            padding: 8px;
+            margin: 5px 0;
+        }
+        .token-display {
+            word-break: break-all;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auth Middleware Test</h1>
+    
+    <div class="card">
+        <h2>Step 1: Generate Token</h2>
+        <div>
+            <label for="role">Select Role:</label>
+            <select id="role">
+                <option value="user">Regular User</option>
+                <option value="admin">Admin User</option>
+            </select>
+            <button onclick="generateToken()">Generate Token</button>
+        </div>
+        <div id="tokenResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Step 2: Test Public Route</h2>
+        <p>This route doesn't require authentication.</p>
+        <button onclick="testPublicRoute()">Test Public Route</button>
+        <div id="publicResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Step 3: Test Protected Route</h2>
+        <p>This route requires authentication but not admin privileges.</p>
+        <button onclick="testProtectedRoute()">Test Protected Route</button>
+        <div id="protectedResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Step 4: Test Admin Route</h2>
+        <p>This route requires authentication AND admin privileges.</p>
+        <button onclick="testAdminRoute()">Test Admin Route</button>
+        <div id="adminResult"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Step 5: Test Invalid Token</h2>
+        <p>This tests the middleware's handling of invalid tokens.</p>
+        <button onclick="testInvalidToken()">Test Invalid Token</button>
+        <div id="invalidResult"></div>
+    </div>
+    
+    <script>
+        let currentToken = '';
+        
+        async function generateToken() {
+            const role = document.getElementById('role').value;
+            const resultDiv = document.getElementById('tokenResult');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role })
+                });
+                
+                const data = await response.json();
+                currentToken = data.token;
+                
+                resultDiv.innerHTML = `
+                    <h3>Token Generated:</h3>
+                    <div class="token-display">${data.token}</div>
+                    <p>Role: <strong>${role}</strong></p>
+                    <p>This token will be used for subsequent tests.</p>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>Error:</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testPublicRoute() {
+            const resultDiv = document.getElementById('publicResult');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/public');
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>Success:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>Error:</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testProtectedRoute() {
+            const resultDiv = document.getElementById('protectedResult');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/protected', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>Success:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>Error:</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                    <p>Make sure you've generated a token first.</p>
+                `;
+            }
+        }
+        
+        async function testAdminRoute() {
+            const resultDiv = document.getElementById('adminResult');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/admin', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <h3>Success:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                try {
+                    // Try to parse the error response
+                    const errorResponse = await error.response.json();
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>Error (Status: ${error.response.status}):</h3>
+                            <pre>${JSON.stringify(errorResponse, null, 2)}</pre>
+                        </div>
+                        <p>If you used a regular user token, this error is expected.</p>
+                    `;
+                } catch (e) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <h3>Error:</h3>
+                            <pre>${error.message}</pre>
+                        </div>
+                        <p>Make sure you've generated a token first.</p>
+                    `;
+                }
+            }
+        }
+        
+        async function testInvalidToken() {
+            const resultDiv = document.getElementById('invalidResult');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/protected', {
+                    headers: {
+                        'Authorization': 'Bearer invalid.token.here'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>Response:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <h3>Error:</h3>
+                        <pre>${error.message}</pre>
+                    </div>
+                    <p>This error is expected when testing an invalid token.</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

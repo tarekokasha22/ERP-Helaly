@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- Primary Meta Tags -->
+    <title>نظام الهلالي لإدارة المشاريع | Al-Helaly Construction ERP</title>
+    <meta name="title" content="نظام الهلالي لإدارة المشاريع | Al-Helaly Construction ERP" />
+    <meta name="description" content="نظام شامل لإدارة مشاريع المقاولات - إدارة المشاريع، المقاطع، المخزون، الموظفين والمدفوعات. نظام ERP متكامل لشركة الهلالي للمقاولات. Comprehensive construction project management system - Projects, Sections, Inventory, Employees & Payments." />
+    <meta name="keywords" content="الهلالي, المقاولات, إدارة المشاريع, ERP, نظام إدارة, construction, project management, Helaly, contracting" />
+    <meta name="author" content="Al-Helaly Contracting Company" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="Arabic, English" />
+    <meta name="revisit-after" content="7 days" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://yourdomain.com/" />
+    <meta property="og:title" content="نظام الهلالي لإدارة المشاريع | Al-Helaly Construction ERP" />
+    <meta property="og:description" content="نظام شامل لإدارة مشاريع المقاولات - إدارة المشاريع، المقاطع، المخزون، الموظفين والمدفوعات" />
+    <meta property="og:image" content="https://yourdomain.com/logo.png" />
+    <meta property="og:locale" content="ar_SA" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:site_name" content="Al-Helaly Construction ERP" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://yourdomain.com/" />
+    <meta property="twitter:title" content="نظام الهلالي لإدارة المشاريع | Al-Helaly Construction ERP" />
+    <meta property="twitter:description" content="نظام شامل لإدارة مشاريع المقاولات - إدارة المشاريع، المقاطع، المخزون، الموظفين والمدفوعات" />
+    <meta property="twitter:image" content="https://yourdomain.com/logo.png" />
+    
+    <!-- Mobile Optimization -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="theme-color" content="#F97316" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="الهلالي ERP" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://yourdomain.com/" />
+    
+    <!-- Alternate Languages -->
+    <link rel="alternate" hreflang="ar" href="https://yourdomain.com/?lang=ar" />
+    <link rel="alternate" hreflang="en" href="https://yourdomain.com/?lang=en" />
+    <link rel="alternate" hreflang="x-default" href="https://yourdomain.com/" />
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Al-Helaly Construction ERP",
+      "alternateName": "نظام الهلالي لإدارة المشاريع",
+      "description": "Comprehensive construction project management system",
+      "url": "https://yourdomain.com",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "Al-Helaly Contracting Company",
+        "alternateName": "شركة الهلالي للمقاولات"
+      },
+      "availableLanguage": ["ar", "en"]
+    }
+    </script>
+    
+    <!-- Performance Optimization -->
+    <meta http-equiv="x-dns-prefetch-control" content="on" />
+  </head>
+  <body>
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h1>JavaScript مطلوب | JavaScript Required</h1>
+        <p>يجب تفعيل JavaScript لتشغيل هذا التطبيق.</p>
+        <p>You need to enable JavaScript to run this app.</p>
+      </div>
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>
+

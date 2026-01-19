@@ -1,0 +1,222 @@
+[
+  {
+    "_id": "SEC001",
+    "projectId": "EGY001",
+    "name": "أعمال المسح والتخطيط",
+    "description": "مسح طبوغرافي شامل وتخطيط مسار الطريق الزراعي",
+    "budget": 3000000,
+    "progress": 95,
+    "country": "egypt",
+    "createdAt": "2024-03-15T08:00:00.000Z",
+    "updatedAt": "2024-12-09T10:30:00.000Z"
+  },
+  {
+    "_id": "SEC002", 
+    "projectId": "EGY001",
+    "name": "أعمال الحفر والتسوية",
+    "description": "حفر وتسوية مسار الطريق وإزالة العوائق الطبيعية",
+    "budget": 12000000,
+    "progress": 80,
+    "country": "egypt",
+    "createdAt": "2024-04-01T09:00:00.000Z",
+    "updatedAt": "2024-12-09T11:15:00.000Z"
+  },
+  {
+    "_id": "SEC003",
+    "projectId": "EGY001", 
+    "name": "أعمال الردم والطبقات الأساسية",
+    "description": "ردم الطريق وإنشاء الطبقات الأساسية حسب المواصفات",
+    "budget": 15000000,
+    "progress": 65,
+    "country": "egypt",
+    "createdAt": "2024-05-01T10:00:00.000Z",
+    "updatedAt": "2024-12-09T12:00:00.000Z"
+  },
+  {
+    "_id": "SEC004",
+    "projectId": "EGY001",
+    "name": "أعمال الرصف بالأسفلت",
+    "description": "رصف الطريق بطبقات الأسفلت النهائية عالية الجودة",
+    "budget": 18000000,
+    "progress": 45,
+    "country": "egypt",
+    "createdAt": "2024-06-01T08:30:00.000Z",
+    "updatedAt": "2024-12-09T13:20:00.000Z"
+  },
+  {
+    "_id": "SEC005",
+    "projectId": "EGY002",
+    "name": "إنشاء الجسور والأنفاق",
+    "description": "بناء 3 جسور و 2 نفق للطريق السريع",
+    "budget": 18000000,
+    "progress": 55,
+    "country": "egypt",
+    "createdAt": "2024-05-20T09:00:00.000Z",
+    "updatedAt": "2024-12-09T14:10:00.000Z"
+  },
+  {
+    "_id": "SEC006",
+    "projectId": "EGY002",
+    "name": "أعمال الإضاءة والعلامات المرورية", 
+    "description": "تركيب أعمدة الإضاءة LED والعلامات المرورية الذكية",
+    "budget": 8000000,
+    "progress": 35,
+    "country": "egypt",
+    "createdAt": "2024-06-15T10:30:00.000Z",
+    "updatedAt": "2024-12-09T15:30:00.000Z"
+  },
+  {
+    "_id": "SEC007",
+    "projectId": "EGY003",
+    "name": "تطوير المناطق السياحية",
+    "description": "إنشاء 5 مناطق استراحة سياحية على طول الطريق الساحلي",
+    "budget": 12000000,
+    "progress": 70,
+    "country": "egypt",
+    "createdAt": "2024-02-01T11:00:00.000Z",
+    "updatedAt": "2024-12-09T16:00:00.000Z"
+  },
+  {
+    "_id": "SEC008",
+    "projectId": "EGY003",
+    "name": "أعمال الرصف والتشطيبات",
+    "description": "رصف الطريق الساحلي وأعمال التشطيبات النهائية",
+    "budget": 16000000,
+    "progress": 75,
+    "country": "egypt",
+    "createdAt": "2024-03-01T08:00:00.000Z",
+    "updatedAt": "2024-12-09T10:30:00.000Z"
+  },
+  {
+    "_id": "SEC009",
+    "projectId": "EGY004",
+    "name": "جسور المجاري المائية",
+    "description": "إنشاء 4 جسور للمجاري المائية والترع الزراعية",
+    "budget": 10000000,
+    "progress": 60,
+    "country": "egypt",
+    "createdAt": "2024-04-15T09:30:00.000Z",
+    "updatedAt": "2024-12-09T11:15:00.000Z"
+  },
+  {
+    "_id": "SEC010",
+    "projectId": "EGY004",
+    "name": "شبكة الصرف الزراعي",
+    "description": "إنشاء شبكة صرف متطورة للمناطق الزراعية",
+    "budget": 8000000,
+    "progress": 50,
+    "country": "egypt",
+    "createdAt": "2024-05-01T10:00:00.000Z",
+    "updatedAt": "2024-12-09T12:00:00.000Z"
+  },
+  {
+    "_id": "SEC011",
+    "projectId": "EGY005",
+    "name": "المرحلة النهائية والتسليم",
+    "description": "أعمال التشطيبات النهائية وتسليم المشروع - مكتمل",
+    "budget": 5000000,
+    "progress": 100,
+    "country": "egypt",
+    "createdAt": "2024-11-01T08:30:00.000Z",
+    "updatedAt": "2024-12-31T16:00:00.000Z"
+  },
+  {
+    "_id": "SEC012",
+    "projectId": "LBY001",
+    "name": "المرحلة الأولى - التخطيط والتصميم",
+    "description": "تصميم وتخطيط الطريق السريع مع المحطات",
+    "budget": 5000000,
+    "progress": 85,
+    "country": "libya",
+    "createdAt": "2024-05-25T09:00:00.000Z",
+    "updatedAt": "2024-12-09T14:10:00.000Z"
+  },
+  {
+    "_id": "SEC013",
+    "projectId": "LBY001",
+    "name": "أعمال البناء الأساسية",
+    "description": "الحفر والردم وإنشاء القواعد الأساسية للطريق",
+    "budget": 20000000,
+    "progress": 35,
+    "country": "libya",
+    "createdAt": "2024-07-01T10:30:00.000Z",
+    "updatedAt": "2024-12-09T15:30:00.000Z"
+  },
+  {
+    "_id": "SEC014",
+    "projectId": "LBY001",
+    "name": "محطات الخدمة المتطورة",
+    "description": "إنشاء 4 محطات خدمة حديثة على طول الطريق",
+    "budget": 13000000,
+    "progress": 25,
+    "country": "libya",
+    "createdAt": "2024-08-01T11:00:00.000Z",
+    "updatedAt": "2024-12-09T16:00:00.000Z"
+  },
+  {
+    "_id": "SEC015",
+    "projectId": "LBY002",
+    "name": "الطريق الساحلي الرئيسي",
+    "description": "إنشاء الطريق الساحلي مع إطلالة على البحر",
+    "budget": 15000000,
+    "progress": 40,
+    "country": "libya",
+    "createdAt": "2024-07-15T08:00:00.000Z",
+    "updatedAt": "2024-12-09T10:30:00.000Z"
+  },
+  {
+    "_id": "SEC016",
+    "projectId": "LBY002",
+    "name": "المناطق السياحية الساحلية",
+    "description": "تطوير 3 مناطق استراحة سياحية على الساحل",
+    "budget": 5000000,
+    "progress": 30,
+    "country": "libya",
+    "createdAt": "2024-08-01T09:30:00.000Z",
+    "updatedAt": "2024-12-09T11:15:00.000Z"
+  },
+  {
+    "_id": "SEC017",
+    "projectId": "LBY003",
+    "name": "الطريق الصحراوي الرئيسي",
+    "description": "إنشاء طريق صحراوي مقاوم للظروف المناخية القاسية",
+    "budget": 18000000,
+    "progress": 65,
+    "country": "libya",
+    "createdAt": "2024-03-01T08:00:00.000Z",
+    "updatedAt": "2024-12-09T10:30:00.000Z"
+  },
+  {
+    "_id": "SEC018",
+    "projectId": "LBY003",
+    "name": "محطات الوقود الصحراوية",
+    "description": "إنشاء محطات وقود مجهزة للظروف الصحراوية",
+    "budget": 7000000,
+    "progress": 55,
+    "country": "libya",
+    "createdAt": "2024-04-01T09:00:00.000Z",
+    "updatedAt": "2024-12-09T11:15:00.000Z"
+  },
+  {
+    "_id": "SEC019",
+    "projectId": "LBY004",
+    "name": "الطريق السياحي المكتمل",
+    "description": "طريق سياحي مكتمل يخدم المناطق الأثرية - مكتمل",
+    "budget": 8000000,
+    "progress": 100,
+    "country": "libya",
+    "createdAt": "2023-10-15T08:00:00.000Z",
+    "updatedAt": "2024-11-30T16:00:00.000Z"
+  },
+  {
+    "_id": "SEC020",
+    "projectId": "LBY004",
+    "name": "اللافتات السياحية والإرشادية",
+    "description": "تركيب لافتات سياحية وإرشادية للمواقع الأثرية - مكتمل",
+    "budget": 4000000,
+    "progress": 100,
+    "country": "libya",
+    "createdAt": "2023-11-01T09:00:00.000Z",
+    "updatedAt": "2024-11-30T16:00:00.000Z"
+  }
+]
