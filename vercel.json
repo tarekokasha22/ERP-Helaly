@@ -4,16 +4,7 @@
   "outputDirectory": "client/build",
   "installCommand": "cd client && npm install",
   "framework": "create-react-app",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index.ts"
-    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
