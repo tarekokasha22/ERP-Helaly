@@ -6,6 +6,7 @@ import { useLanguage } from './contexts/LanguageContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { CountryProvider } from './contexts/CountryContext';
 import { ToastContainer } from 'react-toastify';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Layouts
 import MainLayout from './components/layouts/MainLayout';
@@ -161,6 +162,9 @@ const AppContent: React.FC = () => {
         draggable
         pauseOnHover
       />
+      
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </>
   );
 };
