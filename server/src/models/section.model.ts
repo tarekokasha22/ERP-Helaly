@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISection extends Document {
+  _id: string;
   name: string;
   description: string;
   status: 'not_started' | 'in_progress' | 'completed';
@@ -8,15 +9,19 @@ export interface ISection extends Document {
   targetQuantity: number;
   completedQuantity: number;
   progress?: number;
-  projectId: mongoose.Types.ObjectId;
+  projectId: string;
   country: 'egypt' | 'libya';
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const sectionSchema = new Schema<ISection>(
   {
+    _id: {
+      type: String,
+      required: true,
+    },
     name: {
       type: String,
       required: [true, 'Section name is required'],
@@ -52,7 +57,7 @@ const sectionSchema = new Schema<ISection>(
       max: 100,
     },
     projectId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'Project',
       required: [true, 'Project ID is required'],
     },
@@ -62,9 +67,9 @@ const sectionSchema = new Schema<ISection>(
       required: [true, 'Country is required'],
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'User',
-      required: [true, 'Created by is required'],
+      required: false,
     },
   },
   {

@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import mongoose from 'mongoose';
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import sectionRoutes from './routes/section.routes';
@@ -142,6 +143,18 @@ const startServer = async () => {
     // Seed database with default data
     await seedDatabase();
     console.log('🌱 Database seeded successfully');
+
+    // Connect to MongoDB if URI is provided
+    if (process.env.MONGO_URI) {
+      try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log('✅ Connected to MongoDB');
+      } catch (error) {
+        console.error('❌ MongoDB connection error:', error);
+      }
+    } else {
+      console.log('⚠️  No MONGO_URI found, using local JSON storage');
+    }
 
     // Start the server
     app.listen(PORT, () => {

@@ -1,25 +1,31 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IEmployee extends Document {
+  _id: string;
   name: string;
   email?: string;
   phone?: string;
-  employeeType: 'monthly' | 'daily'; // موظف شهري أو عامل باليومية
+  employeeType: 'monthly' | 'daily' | 'piecework'; // موظف شهري أو عامل باليومية أو بالقطعة
   position: string;
   monthlySalary?: number; // الراتب الشهري للموظفين
   dailyRate?: number; // السعر اليومي للعمال
+  pieceworkRate?: number; // سعر القطعة/المتر للعمل بالقطعة
   currency: 'EGP' | 'USD'; // العملة الأساسية
   country: 'egypt' | 'libya';
   active: boolean;
   hireDate: Date;
   notes?: string;
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const employeeSchema = new Schema<IEmployee>(
   {
+    _id: {
+      type: String,
+      required: true,
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],
@@ -37,7 +43,7 @@ const employeeSchema = new Schema<IEmployee>(
     },
     employeeType: {
       type: String,
-      enum: ['monthly', 'daily'],
+      enum: ['monthly', 'daily', 'piecework'],
       required: [true, 'Employee type is required'],
     },
     position: {
@@ -73,6 +79,20 @@ const employeeSchema = new Schema<IEmployee>(
         message: 'Daily rate is required for daily employees'
       }
     },
+    pieceworkRate: {
+      type: Number,
+      min: [0, 'Piecework rate must be a positive number'],
+      validate: {
+        validator: function (this: IEmployee, value: number) {
+          // Piecework rate is required only for piecework employees
+          if (this.employeeType === 'piecework' && (!value || value <= 0)) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Piecework rate is required for piecework employees'
+      }
+    },
     currency: {
       type: String,
       enum: ['EGP', 'USD'],
@@ -97,9 +117,9 @@ const employeeSchema = new Schema<IEmployee>(
       trim: true,
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId for compatibility
       ref: 'User',
-      required: [true, 'Created by is required'],
+      required: false,
     },
   },
   {
