@@ -235,7 +235,7 @@
     "permits": "التصاريح",
     "consulting": "الاستشارات",
     "overview": "نظرة عامة",
-    "financial": "التقرير المالي", 
+    "financial": "التقرير المالي",
     "projects": "تقرير المشاريع",
     "sections": "تقرير الأقسام",
     "inventory": "تقرير المخزون",
@@ -243,7 +243,7 @@
     "selectDateRange": "اختر الفترة الزمنية",
     "selectProject": "اختر المشروع",
     "filterBy": "تصفية حسب",
-    "byDate": "حسب التاريخ", 
+    "byDate": "حسب التاريخ",
     "byProject": "حسب المشروع",
     "totalProjects": "إجمالي المشاريع",
     "totalSections": "إجمالي الأقسام",
@@ -387,10 +387,10 @@
     "phone": "الهاتف",
     "employeeType": "نوع العامل",
     "monthly": "موظف شهري",
-    "piecework": "عامل بالقطعة",
+    "daily": "عامل باليومية",
     "position": "المنصب",
     "monthlySalary": "الراتب الشهري",
-    "pieceworkRate": "سعر القطعة",
+    "dailyRate": "السعر اليومي",
     "currency": "العملة",
     "hireDate": "تاريخ التعيين",
     "notes": "ملاحظات",
@@ -403,7 +403,7 @@
     "totalEmployees": "إجمالي العاملين",
     "activeEmployees": "العاملين النشطين",
     "monthlyEmployees": "الموظفين الشهريين",
-    "pieceworkEmployees": "العمال بالقطعة",
+    "dailyEmployees": "العمال باليومية",
     "totalMonthlySalary": "إجمالي الرواتب الشهرية",
     "employeeCreated": "تم إنشاء العامل بنجاح",
     "employeeUpdated": "تم تحديث العامل بنجاح",
@@ -452,4 +452,4 @@
     "paymentDeleted": "تم حذف الدفعة بنجاح",
     "error": "حدث خطأ"
   }
-} 
+}

@@ -32,10 +32,10 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load country from authenticated user data in localStorage
+    // Load country from authenticated user data in sessionStorage
     const loadCountryFromUser = () => {
       try {
-        const userData = localStorage.getItem('user');
+        const userData = sessionStorage.getItem('user');
         if (userData) {
           const user = JSON.parse(userData);
           if (user.country && (user.country === 'egypt' || user.country === 'libya')) {
@@ -64,17 +64,17 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const setCountry = (newCountry: Country) => {
     setCountryState(newCountry);
-    
-    // Update user data in localStorage if user is logged in
+
+    // Update user data in sessionStorage if user is logged in
     try {
-      const userData = localStorage.getItem('user');
+      const userData = sessionStorage.getItem('user');
       if (userData) {
         const user = JSON.parse(userData);
         user.country = newCountry;
-        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user', JSON.stringify(user));
       }
     } catch (error) {
-      console.error('Error updating user country in localStorage:', error);
+      console.error('Error updating user country in sessionStorage:', error);
     }
   };
 
@@ -83,15 +83,15 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getCountriesOptions = () => [
-    { 
-      value: 'egypt' as Country, 
-      label: countryMap.egypt.name, 
-      flag: countryMap.egypt.flag 
+    {
+      value: 'egypt' as Country,
+      label: countryMap.egypt.name,
+      flag: countryMap.egypt.flag
     },
-    { 
-      value: 'libya' as Country, 
-      label: countryMap.libya.name, 
-      flag: countryMap.libya.flag 
+    {
+      value: 'libya' as Country,
+      label: countryMap.libya.name,
+      flag: countryMap.libya.flag
     },
   ];
 

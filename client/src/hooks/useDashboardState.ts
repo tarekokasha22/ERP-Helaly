@@ -42,9 +42,9 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
    */
   const invalidateAllDashboardData = useCallback(async () => {
     debugLog('🚀 EXECUTING IMMEDIATE STATE INVALIDATION...');
-    
+
     const startTime = performance.now();
-    
+
     try {
       // Phase 1: Invalidate all related queries
       const invalidationPromises = [
@@ -52,12 +52,15 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
         queryClient.invalidateQueries(['projects']),
         queryClient.invalidateQueries(['sections']),
         queryClient.invalidateQueries(['spendings']),
-        queryClient.invalidateQueries(['inventory'])
+        queryClient.invalidateQueries(['inventory']),
+        queryClient.invalidateQueries(['employees']),
+        queryClient.invalidateQueries(['payments']),
+        queryClient.invalidateQueries(['users'])
       ];
-      
+
       await Promise.all(invalidationPromises);
       debugLog('✅ Cache invalidation completed');
-      
+
       // Phase 2: Force immediate refetch of critical data
       if (refetchDelay === 0) {
         const refetchPromises = [
@@ -66,7 +69,7 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
           queryClient.refetchQueries(['sections']),
           queryClient.refetchQueries(['spendings'])
         ];
-        
+
         await Promise.all(refetchPromises);
         debugLog('⚡ Immediate refetch completed for all critical queries');
       } else {
@@ -81,10 +84,10 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
           debugLog('⏰ Delayed refetch completed for all critical queries');
         }, refetchDelay);
       }
-      
+
       const endTime = performance.now();
       debugLog(`🏁 State invalidation completed in ${(endTime - startTime).toFixed(2)}ms`);
-      
+
       return true;
     } catch (error) {
       debugLog('❌ State invalidation failed', error);
@@ -105,15 +108,15 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
     try {
       // Get current projects data
       const currentProjects = queryClient.getQueryData(['projects']) as any[] || [];
-      
+
       let optimisticProjects;
-      
+
       switch (operation) {
         case 'create':
           optimisticProjects = [...currentProjects, { ...projectData, id: `temp-${Date.now()}` }];
           break;
         case 'update':
-          optimisticProjects = currentProjects.map(p => 
+          optimisticProjects = currentProjects.map(p =>
             p.id === projectData.id ? { ...p, ...projectData } : p
           );
           break;
@@ -123,11 +126,11 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
         default:
           return;
       }
-      
+
       // Update cache immediately
       queryClient.setQueryData(['projects'], optimisticProjects);
       debugLog(`✨ Optimistic UI updated for ${operation}`);
-      
+
     } catch (error) {
       debugLog('❌ Optimistic update failed', error);
     }
@@ -151,9 +154,9 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
         optimisticProjectUpdate('create', projectData);
       }
       await invalidateAllDashboardData();
-      
+
       // Dispatch event for cross-component communication
-      window.dispatchEvent(new CustomEvent('projectAdded', { 
+      window.dispatchEvent(new CustomEvent('projectAdded', {
         detail: { project: projectData, timestamp: Date.now() }
       }));
     },
@@ -164,8 +167,8 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
         optimisticProjectUpdate('update', projectData);
       }
       await invalidateAllDashboardData();
-      
-      window.dispatchEvent(new CustomEvent('projectUpdated', { 
+
+      window.dispatchEvent(new CustomEvent('projectUpdated', {
         detail: { project: projectData, timestamp: Date.now() }
       }));
     },
@@ -176,8 +179,8 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
         optimisticProjectUpdate('delete', { id: projectId });
       }
       await invalidateAllDashboardData();
-      
-      window.dispatchEvent(new CustomEvent('projectDeleted', { 
+
+      window.dispatchEvent(new CustomEvent('projectDeleted', {
         detail: { projectId, timestamp: Date.now() }
       }));
     }
@@ -239,7 +242,7 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
       operationCount: operationCount.current,
       timestamp: new Date().toISOString()
     };
-    
+
     debugLog('🏥 Dashboard state health check', health);
     return health;
   }, [queryClient, debugLog]);
@@ -255,12 +258,12 @@ export const useDashboardState = (options: DashboardStateOptions = {}) => {
     invalidateAllDashboardData,
     rollbackOptimisticUpdate,
     healthCheck,
-    
+
     // Operation handlers
     projectOperations,
     sectionOperations,
     spendingOperations,
-    
+
     // Debugging
     debugLog,
     lastOperation: lastOperation.current,

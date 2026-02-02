@@ -1,25 +1,31 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IEmployee extends Document {
+  _id: string;
   name: string;
   email?: string;
   phone?: string;
-  employeeType: 'monthly' | 'piecework'; // موظف شهري أو عامل بالقطعة
+  employeeType: 'monthly' | 'daily' | 'piecework'; // موظف شهري أو عامل باليومية أو بالقطعة
   position: string;
   monthlySalary?: number; // الراتب الشهري للموظفين
-  pieceworkRate?: number; // سعر القطعة للعمال
+  dailyRate?: number; // السعر اليومي للعمال
+  pieceworkRate?: number; // سعر القطعة/المتر للعمل بالقطعة
   currency: 'EGP' | 'USD'; // العملة الأساسية
   country: 'egypt' | 'libya';
   active: boolean;
   hireDate: Date;
   notes?: string;
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const employeeSchema = new Schema<IEmployee>(
   {
+    _id: {
+      type: String,
+      required: true,
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],
@@ -37,7 +43,7 @@ const employeeSchema = new Schema<IEmployee>(
     },
     employeeType: {
       type: String,
-      enum: ['monthly', 'piecework'],
+      enum: ['monthly', 'daily', 'piecework'],
       required: [true, 'Employee type is required'],
     },
     position: {
@@ -49,7 +55,7 @@ const employeeSchema = new Schema<IEmployee>(
       type: Number,
       min: [0, 'Monthly salary must be a positive number'],
       validate: {
-        validator: function(this: IEmployee, value: number) {
+        validator: function (this: IEmployee, value: number) {
           // Monthly salary is required only for monthly employees
           if (this.employeeType === 'monthly' && (!value || value <= 0)) {
             return false;
@@ -59,11 +65,25 @@ const employeeSchema = new Schema<IEmployee>(
         message: 'Monthly salary is required for monthly employees'
       }
     },
+    dailyRate: {
+      type: Number,
+      min: [0, 'Daily rate must be a positive number'],
+      validate: {
+        validator: function (this: IEmployee, value: number) {
+          // Daily rate is required only for daily employees
+          if (this.employeeType === 'daily' && (!value || value <= 0)) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Daily rate is required for daily employees'
+      }
+    },
     pieceworkRate: {
       type: Number,
       min: [0, 'Piecework rate must be a positive number'],
       validate: {
-        validator: function(this: IEmployee, value: number) {
+        validator: function (this: IEmployee, value: number) {
           // Piecework rate is required only for piecework employees
           if (this.employeeType === 'piecework' && (!value || value <= 0)) {
             return false;
@@ -97,9 +117,9 @@ const employeeSchema = new Schema<IEmployee>(
       trim: true,
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId for compatibility
       ref: 'User',
-      required: [true, 'Created by is required'],
+      required: false,
     },
   },
   {

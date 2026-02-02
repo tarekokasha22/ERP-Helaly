@@ -7,10 +7,16 @@ import {
   deleteEmployee,
   getEmployeeStats,
 } from '../controllers/employee.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import { authenticate as authenticateToken } from '../middlewares/auth.middleware';
 import { validateCountry } from '../middlewares/country.middleware';
 
 const router = express.Router();
+
+// DEBUG ROUTE - Bypass auth to test router registration
+router.get('/debug', (req, res) => {
+  console.log('🐞 Debug route hit!');
+  res.json({ message: 'Employee router is working!' });
+});
 
 // Apply authentication middleware to all routes
 router.use(authenticateToken);

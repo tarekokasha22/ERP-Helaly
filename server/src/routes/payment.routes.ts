@@ -8,7 +8,7 @@ import {
   getPaymentStats,
   getEmployeePayments,
 } from '../controllers/payment.controller';
-import { authenticateToken } from '../middlewares/auth.middleware';
+import { authenticate as authenticateToken } from '../middlewares/auth.middleware';
 import { validateCountry } from '../middlewares/country.middleware';
 
 const router = express.Router();

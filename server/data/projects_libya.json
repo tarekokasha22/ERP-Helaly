@@ -1,0 +1,50 @@
+[
+    {
+        "_id": "PRJ002",
+        "name": "طريق بنغازي - طرابلس السريع",
+        "description": "طريق سريع حديث بطول 30 كم مع أنفاق ومداخل آمنة وإضاءة LED حديثة",
+        "budget": 18000000,
+        "startDate": "2024-05-15",
+        "endDate": "2025-12-31",
+        "status": "in_progress",
+        "manager": "م. محمد القدافي",
+        "totalLength": 30,
+        "unit": "km",
+        "progress": 40,
+        "country": "libya",
+        "createdAt": "2024-05-15T09:00:00.000Z",
+        "updatedAt": "2024-08-09T11:15:00.000Z"
+    },
+    {
+        "_id": "PRJ004",
+        "name": "مجمع الأعمال الإداري طرابلس",
+        "description": "مجمع إداري حديث من 12 طابق بمساحة 8000 متر مربع مع مواقف سيارات تحت الأرض",
+        "budget": 12000000,
+        "startDate": "2024-04-01",
+        "endDate": "2025-10-15",
+        "status": "in_progress",
+        "manager": "م. عمر الزنتاني",
+        "totalLength": 8000,
+        "unit": "sq_m",
+        "progress": 55,
+        "country": "libya",
+        "createdAt": "2024-04-01T08:00:00.000Z",
+        "updatedAt": "2024-08-09T13:20:00.000Z"
+    },
+    {
+        "_id": "PRJ007",
+        "name": "ميناء بنغازي التجاري",
+        "description": "تطوير وتوسيع ميناء بنغازي التجاري مع رصيف جديد بطول 800 متر",
+        "budget": 45000000,
+        "startDate": "2024-07-01",
+        "endDate": "2026-03-31",
+        "status": "not_started",
+        "manager": "م. ليلى الشريف",
+        "totalLength": 800,
+        "unit": "m",
+        "progress": 0,
+        "country": "libya",
+        "createdAt": "2024-07-01T08:30:00.000Z",
+        "updatedAt": "2024-08-09T16:00:00.000Z"
+    }
+]

@@ -1,14 +1,46 @@
 [
   {
-    "_id": "admin001",
-    "name": "مدير النظام",
+    "_id": "admin_egypt_001",
+    "name": "مدير مصر",
     "username": "admin",
-    "email": "admin@helaly.com",
-    "password": "$2a$10$xANTHwxWTNvTlVpkMbfRkuuKvFkak9mPJGd9LnbyyiOk03qIpZNZ2",
+    "email": "admin@egypt.com",
+    "password": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
     "role": "admin",
     "country": "egypt",
-    "createdAt": "2024-01-01T00:00:00.000Z",
-    "updatedAt": "2025-08-09T07:16:10.639Z",
-    "lastLogin": "2025-08-09T07:16:10.639Z"
+    "createdAt": "2026-01-27T10:00:00.000Z",
+    "updatedAt": "2026-01-27T10:00:00.000Z"
+  },
+  {
+    "_id": "admin_libya_001",
+    "name": "مدير ليبيا",
+    "username": "admin",
+    "email": "admin@libya.com",
+    "password": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "admin",
+    "country": "libya",
+    "createdAt": "2026-01-27T10:00:00.000Z",
+    "updatedAt": "2026-01-27T10:00:00.000Z"
+  },
+  {
+    "_id": "user_egypt_001",
+    "name": "موظف مصر",
+    "username": "user",
+    "email": "user@egypt.com",
+    "password": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "user",
+    "country": "egypt",
+    "createdAt": "2026-01-27T10:00:00.000Z",
+    "updatedAt": "2026-01-27T10:00:00.000Z"
+  },
+  {
+    "_id": "user_libya_001",
+    "name": "موظف ليبيا",
+    "username": "user",
+    "email": "user@libya.com",
+    "password": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+    "role": "user",
+    "country": "libya",
+    "createdAt": "2026-01-27T10:00:00.000Z",
+    "updatedAt": "2026-01-27T10:00:00.000Z"
   }
 ]

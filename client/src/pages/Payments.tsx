@@ -4,8 +4,8 @@ import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { 
-  PlusIcon, 
+import {
+  PlusIcon,
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
@@ -15,7 +15,7 @@ import {
 
 interface PaymentFormData {
   employeeId: string;
-  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'piecework';
+  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'daily';
   amount: number;
   currency: 'EGP' | 'USD' | 'split';
   amountEGP?: number;
@@ -76,7 +76,7 @@ const Payments: React.FC = () => {
     salaryPayments: 0,
     advancePayments: 0,
     loanPayments: 0,
-    pieceworkPayments: 0,
+    dailyPayments: 0,
     todayTotal: 0,
     thisMonthTotal: 0,
   });
@@ -92,7 +92,7 @@ const Payments: React.FC = () => {
       advance: 'Advance',
       loan: 'Custody',
       onAccount: 'On Account',
-      piecework: 'Piecework',
+      daily: 'Daily Work',
       amount: 'Amount',
       currency: 'Currency',
       singleCurrency: 'Single Currency',
@@ -123,7 +123,7 @@ const Payments: React.FC = () => {
       salaryPayments: 'Salary Payments',
       advancePayments: 'Advance Payments',
       loanPayments: 'Custody Payments',
-      pieceworkPayments: 'Piecework Payments',
+      dailyPayments: 'Daily Payments',
       todayTotal: 'Today\'s Total',
       thisMonthTotal: 'This Month\'s Total',
       paymentCreated: 'Payment created successfully',
@@ -153,7 +153,7 @@ const Payments: React.FC = () => {
       advance: 'سلفة',
       loan: 'عهدة',
       onAccount: 'تحت الحساب',
-      piecework: 'دفعة عمل بالقطعة',
+      daily: 'دفعة عمل باليومية',
       amount: 'المبلغ',
       currency: 'العملة',
       singleCurrency: 'عملة واحدة',
@@ -184,7 +184,7 @@ const Payments: React.FC = () => {
       salaryPayments: 'مدفوعات الرواتب',
       advancePayments: 'مدفوعات السلف',
       loanPayments: 'مدفوعات العهد',
-      pieceworkPayments: 'مدفوعات القطعة',
+      dailyPayments: 'مدفوعات اليومية',
       todayTotal: 'إجمالي اليوم',
       thisMonthTotal: 'إجمالي الشهر',
       paymentCreated: 'تم إنشاء الدفعة بنجاح',
@@ -222,6 +222,10 @@ const Payments: React.FC = () => {
   }, [payments, searchTerm, filters]);
 
   const fetchPayments = async () => {
+    if (!country) {
+      console.log('Country not set, skipping payments fetch');
+      return;
+    }
     try {
       setLoading(true);
       const response = await api.get(`/payments/${country}`);
@@ -235,6 +239,7 @@ const Payments: React.FC = () => {
   };
 
   const fetchEmployees = async () => {
+    if (!country) return;
     try {
       const response = await api.get(`/employees/${country}`);
       setEmployees(response.data.data || []);
@@ -244,6 +249,7 @@ const Payments: React.FC = () => {
   };
 
   const fetchProjects = async () => {
+    if (!country) return;
     try {
       const response = await api.get(`/projects/${country}`);
       setProjects(response.data.data || []);
@@ -253,6 +259,7 @@ const Payments: React.FC = () => {
   };
 
   const fetchSections = async () => {
+    if (!country) return;
     try {
       const response = await api.get(`/sections/${country}`);
       setSections(response.data.data || []);
@@ -262,40 +269,45 @@ const Payments: React.FC = () => {
   };
 
   const fetchStats = async () => {
+    if (!country) return;
     try {
       const response = await api.get(`/payments/${country}/stats`);
       const statsData = response.data.data;
-      
+
       // Calculate today's and this month's totals
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      
+
       const todayPayments = payments.filter(p => {
+        if (!p.paymentDate) return false;
         const paymentDate = new Date(p.paymentDate);
+        if (Number.isNaN(paymentDate.getTime())) return false;
         paymentDate.setHours(0, 0, 0, 0);
         return paymentDate.getTime() === today.getTime();
       });
-      
+
       const thisMonthPayments = payments.filter(p => {
+        if (!p.paymentDate) return false;
         const paymentDate = new Date(p.paymentDate);
+        if (Number.isNaN(paymentDate.getTime())) return false;
         return paymentDate >= thisMonthStart;
       });
-      
-      const todayTotalEGP = todayPayments.reduce((sum, p) => 
+
+      const todayTotalEGP = todayPayments.reduce((sum, p) =>
         sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0
       );
-      const todayTotalUSD = todayPayments.reduce((sum, p) => 
+      const todayTotalUSD = todayPayments.reduce((sum, p) =>
         sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0
       );
-      
-      const monthTotalEGP = thisMonthPayments.reduce((sum, p) => 
+
+      const monthTotalEGP = thisMonthPayments.reduce((sum, p) =>
         sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0
       );
-      const monthTotalUSD = thisMonthPayments.reduce((sum, p) => 
+      const monthTotalUSD = thisMonthPayments.reduce((sum, p) =>
         sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0
       );
-      
+
       setStats({
         ...statsData,
         todayTotal: todayTotalEGP + todayTotalUSD,
@@ -351,7 +363,7 @@ const Payments: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (new Date(formData.paymentDate) > new Date()) {
       toast.error(t.dateCannotBeFuture);
@@ -490,7 +502,7 @@ const Payments: React.FC = () => {
   const exportToCSV = () => {
     const headers = ['Date', 'Employee', 'Type', 'Amount EGP', 'Amount USD', 'Method', 'Receipt', 'Project'];
     const rows = filteredPayments.map(p => [
-      new Date(p.paymentDate).toLocaleDateString(),
+      p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : '',
       p.employeeName || '',
       p.paymentType,
       p.amountEGP || (p.currency === 'EGP' ? p.amount : 0),
@@ -521,8 +533,15 @@ const Payments: React.FC = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US');
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) {
+      return isRtl ? 'غير متوفر' : 'N/A';
+    }
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return isRtl ? 'غير متوفر' : 'N/A';
+    }
+    return date.toLocaleDateString(isRtl ? 'ar-EG' : 'en-US');
   };
 
   const getPaymentTypeLabel = (type: string) => {
@@ -531,7 +550,7 @@ const Payments: React.FC = () => {
       advance: t.advance,
       loan: t.loan,
       on_account: t.onAccount,
-      piecework: t.piecework,
+      daily: t.daily,
     };
     return labels[type] || type;
   };
@@ -633,7 +652,7 @@ const Payments: React.FC = () => {
               <option value="advance">{t.advance}</option>
               <option value="loan">{t.loan}</option>
               <option value="on_account">{t.onAccount}</option>
-              <option value="piecework">{t.piecework}</option>
+              <option value="daily">{t.daily}</option>
             </select>
             <select
               value={filters.currency}
@@ -720,7 +739,7 @@ const Payments: React.FC = () => {
                     <option value="advance">{t.advance}</option>
                     <option value="loan">{t.loan}</option>
                     <option value="on_account">{t.onAccount}</option>
-                    <option value="piecework">{t.piecework}</option>
+                    <option value="daily">{t.daily}</option>
                   </select>
                 </div>
                 <div>
@@ -872,7 +891,7 @@ const Payments: React.FC = () => {
                       ))}
                   </select>
                 </div>
-                {formData.paymentType === 'piecework' && (
+                {formData.paymentType === 'daily' && (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -976,18 +995,17 @@ const Payments: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      payment.paymentType === 'salary' ? 'bg-green-100 text-green-800' :
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.paymentType === 'salary' ? 'bg-green-100 text-green-800' :
                       payment.paymentType === 'advance' ? 'bg-yellow-100 text-yellow-800' :
-                      payment.paymentType === 'loan' ? 'bg-red-100 text-red-800' :
-                      payment.paymentType === 'piecework' ? 'bg-purple-100 text-purple-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        payment.paymentType === 'loan' ? 'bg-red-100 text-red-800' :
+                          payment.paymentType === 'daily' ? 'bg-purple-100 text-purple-800' :
+                            'bg-gray-100 text-gray-800'
+                      }`}>
                       {getPaymentTypeLabel(payment.paymentType)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {payment.currency === 'split' 
+                    {payment.currency === 'split'
                       ? `${(payment.amountEGP || 0).toLocaleString()} EGP + ${(payment.amountUSD || 0).toLocaleString()} USD`
                       : `${payment.amount.toLocaleString()} ${payment.currency}`
                     }

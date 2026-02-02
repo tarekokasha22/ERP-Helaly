@@ -1,62 +1,58 @@
 import { Request, Response } from 'express';
-import Payment from '../models/payment.model';
-import Employee from '../models/employee.model';
-import { IPayment } from '../models/payment.model';
+import jsonStorage, { Payment, Employee } from '../storage/jsonStorage';
 
 // Get all payments for a specific country
 export const getPayments = async (req: Request, res: Response) => {
   try {
     const { country } = req.params;
-    const { 
-      employeeId, 
-      paymentType, 
-      currency, 
-      startDate, 
+    const {
+      employeeId,
+      paymentType,
+      currency,
+      startDate,
       endDate,
-      page = 1, 
-      limit = 10 
+      page = 1,
+      limit = 1000
     } = req.query;
 
-    const filter: any = { country };
-    
-    if (employeeId) {
-      filter.employeeId = employeeId;
-    }
-    
-    if (paymentType) {
-      filter.paymentType = paymentType;
-    }
-    
-    if (currency) {
-      filter.currency = currency;
-    }
-    
-    if (startDate || endDate) {
-      filter.paymentDate = {};
-      if (startDate) {
-        filter.paymentDate.$gte = new Date(startDate as string);
-      }
-      if (endDate) {
-        filter.paymentDate.$lte = new Date(endDate as string);
-      }
-    }
+    const filters: any = {};
+    if (employeeId) filters.employeeId = employeeId as string;
+    if (paymentType) filters.paymentType = paymentType as string;
+    if (currency) filters.currency = currency as string;
+    if (startDate) filters.startDate = startDate as string;
+    if (endDate) filters.endDate = endDate as string;
 
+    const allPayments = await jsonStorage.getPayments(country, filters);
+
+    // Apply pagination
     const skip = (Number(page) - 1) * Number(limit);
+    const payments = allPayments.slice(skip, skip + Number(limit));
+    const total = allPayments.length;
 
-    const payments = await Payment.find(filter)
-      .populate('employeeId', 'name employeeType position')
-      .populate('projectId', 'name')
-      .populate('sectionId', 'name')
-      .populate('createdBy', 'name email')
-      .sort({ paymentDate: -1 })
-      .skip(skip)
-      .limit(Number(limit));
+    // Get employees and projects for populating names
+    const employees = await jsonStorage.getEmployees(country);
+    const projects = await jsonStorage.getProjects(country);
+    const sections = await jsonStorage.getSections(country);
 
-    const total = await Payment.countDocuments(filter);
+    // Enrich payments with employee and project names
+    const enrichedPayments = payments.map(payment => {
+      const employee = employees.find(e => e._id === payment.employeeId);
+      const project = projects.find(p => p._id === payment.projectId);
+      const section = sections.find(s => s._id === payment.sectionId);
+
+      return {
+        ...payment,
+        id: payment._id,
+        employeeName: employee?.name,
+        employeeType: employee?.employeeType,
+        projectName: project?.name,
+        sectionName: section?.name,
+      };
+    });
 
     res.json({
       success: true,
-      data: payments,
+      data: enrichedPayments,
       pagination: {
         current: Number(page),
         pages: Math.ceil(total / Number(limit)),
@@ -76,12 +72,8 @@ export const getPayments = async (req: Request, res: Response) => {
 // Get payment by ID
 export const getPaymentById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const payment = await Payment.findById(id)
-      .populate('employeeId', 'name employeeType position monthlySalary pieceworkRate')
-      .populate('projectId', 'name')
-      .populate('sectionId', 'name')
-      .populate('createdBy', 'name email');
+    const { country, id } = req.params;
+    const payment = await jsonStorage.getPaymentById(id, country);
 
     if (!payment) {
       return res.status(404).json({
@@ -90,9 +82,21 @@ export const getPaymentById = async (req: Request, res: Response) => {
       });
     }
 
+    // Get employee and project for populating names
+    const employee = await jsonStorage.getEmployeeById(payment.employeeId, country);
+    const project = payment.projectId ? await jsonStorage.getProjects(country).then(projects => projects.find(p => p._id === payment.projectId)) : null;
+    const section = payment.sectionId ? await jsonStorage.getSections(country).then(sections => sections.find(s => s._id === payment.sectionId)) : null;
+
     res.json({
       success: true,
-      data: payment,
+      data: {
+        ...payment,
+        id: payment._id,
+        employeeName: employee?.name,
+        employeeType: employee?.employeeType,
+        projectName: project?.name,
+        sectionName: section?.name,
+      },
     });
   } catch (error) {
     console.error('Error fetching payment:', error);
@@ -107,13 +111,15 @@ export const getPaymentById = async (req: Request, res: Response) => {
 // Create new payment
 export const createPayment = async (req: Request, res: Response) => {
   try {
-    const paymentData: Partial<IPayment> = {
+    const { country } = req.params;
+    const paymentData: Omit<Payment, '_id' | 'createdAt' | 'updatedAt'> = {
       ...req.body,
-      createdBy: req.user?.id,
+      country: country as 'egypt' | 'libya',
+      createdBy: (req as any).user?.id || 'system',
     };
 
     // Validate employee exists
-    const employee = await Employee.findById(paymentData.employeeId);
+    const employee = await jsonStorage.getEmployeeById(paymentData.employeeId, country);
     if (!employee) {
       return res.status(404).json({
         success: false,
@@ -121,9 +127,9 @@ export const createPayment = async (req: Request, res: Response) => {
       });
     }
 
-    // For piecework payments, calculate amount if not provided
-    if (paymentData.paymentType === 'piecework' && paymentData.workQuantity && employee.pieceworkRate) {
-      paymentData.amount = paymentData.workQuantity * employee.pieceworkRate;
+    // For daily payments, calculate amount if not provided
+    if (paymentData.paymentType === 'daily' && paymentData.workQuantity && employee.dailyRate) {
+      paymentData.amount = paymentData.workQuantity * employee.dailyRate;
     }
 
     // Handle split payments - calculate total amount
@@ -134,9 +140,7 @@ export const createPayment = async (req: Request, res: Response) => {
           message: 'Both EGP and USD amounts are required for split payments',
         });
       }
-      // For split payments, we store the total conceptually
-      // The actual amounts are stored in amountEGP and amountUSD
-      paymentData.amount = paymentData.amountEGP + paymentData.amountUSD; // Total for reference
+      paymentData.amount = paymentData.amountEGP + paymentData.amountUSD;
     } else {
       // For single currency payments, set amountEGP or amountUSD based on currency
       if (paymentData.currency === 'EGP') {
@@ -148,22 +152,42 @@ export const createPayment = async (req: Request, res: Response) => {
       }
     }
 
-    const payment = new Payment(paymentData);
-    await payment.save();
+    const payment = await jsonStorage.createPayment(paymentData);
 
-    // Update employee balance (this will be calculated dynamically in getEmployeeById)
-    // No need to store it in employee model as it's calculated from payments
+    // AUTO-CREATE SPENDING: If payment is linked to a project
+    if (paymentData.projectId && paymentData.amount > 0) {
+      const spendingCategory = paymentData.paymentType === 'salary' || paymentData.paymentType === 'daily'
+        ? 'labor'
+        : 'other';
 
-    const populatedPayment = await Payment.findById(payment._id)
-      .populate('employeeId', 'name employeeType position monthlySalary pieceworkRate')
-      .populate('projectId', 'name')
-      .populate('sectionId', 'name')
-      .populate('createdBy', 'name email');
+      await jsonStorage.createSpending({
+        projectId: paymentData.projectId,
+        sectionId: paymentData.sectionId || undefined,
+        amount: paymentData.amount,
+        category: spendingCategory,
+        description: `دفعة للموظف: ${employee.name} (${paymentData.paymentType === 'salary' ? 'راتب' : paymentData.paymentType === 'daily' ? 'يومي' : paymentData.paymentType})`,
+        date: paymentData.paymentDate || new Date().toISOString(),
+        country: country as 'egypt' | 'libya'
+      });
+      console.log(`✅ Auto-created spending of ${paymentData.amount} for project ${paymentData.projectId} from payment`);
+    }
+
+    // Get employee and project for response
+    const employeeData = await jsonStorage.getEmployeeById(payment.employeeId, country);
+    const project = payment.projectId ? await jsonStorage.getProjects(country).then(projects => projects.find(p => p._id === payment.projectId)) : null;
+    const section = payment.sectionId ? await jsonStorage.getSections(country).then(sections => sections.find(s => s._id === payment.sectionId)) : null;
 
     res.status(201).json({
       success: true,
-      data: populatedPayment,
-      message: 'Payment created successfully',
+      data: {
+        ...payment,
+        id: payment._id,
+        employeeName: employeeData?.name,
+        employeeType: employeeData?.employeeType,
+        projectName: project?.name,
+        sectionName: section?.name,
+      },
+      message: 'Payment created successfully' + (paymentData.projectId ? ' (spending auto-created)' : ''),
     });
   } catch (error) {
     console.error('Error creating payment:', error);
@@ -178,8 +202,8 @@ export const createPayment = async (req: Request, res: Response) => {
 // Update payment
 export const updatePayment = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
+    const { country, id } = req.params;
+    const updateData = { ...req.body, country };
 
     // Handle split payments - calculate total amount
     if (updateData.currency === 'split') {
@@ -201,15 +225,7 @@ export const updatePayment = async (req: Request, res: Response) => {
       }
     }
 
-    const payment = await Payment.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    )
-      .populate('employeeId', 'name employeeType position monthlySalary pieceworkRate')
-      .populate('projectId', 'name')
-      .populate('sectionId', 'name')
-      .populate('createdBy', 'name email');
+    const payment = await jsonStorage.updatePayment(id, updateData);
 
     if (!payment) {
       return res.status(404).json({
@@ -218,9 +234,21 @@ export const updatePayment = async (req: Request, res: Response) => {
       });
     }
 
+    // Get employee and project for response
+    const employee = await jsonStorage.getEmployeeById(payment.employeeId, country);
+    const project = payment.projectId ? await jsonStorage.getProjects(country).then(projects => projects.find(p => p._id === payment.projectId)) : null;
+    const section = payment.sectionId ? await jsonStorage.getSections(country).then(sections => sections.find(s => s._id === payment.sectionId)) : null;
+
     res.json({
       success: true,
-      data: payment,
+      data: {
+        ...payment,
+        id: payment._id,
+        employeeName: employee?.name,
+        employeeType: employee?.employeeType,
+        projectName: project?.name,
+        sectionName: section?.name,
+      },
       message: 'Payment updated successfully',
     });
   } catch (error) {
@@ -236,11 +264,11 @@ export const updatePayment = async (req: Request, res: Response) => {
 // Delete payment
 export const deletePayment = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const { country, id } = req.params;
 
-    const payment = await Payment.findByIdAndDelete(id);
+    const deleted = await jsonStorage.deletePayment(id, country);
 
-    if (!payment) {
+    if (!deleted) {
       return res.status(404).json({
         success: false,
         message: 'Payment not found',
@@ -267,69 +295,29 @@ export const getPaymentStats = async (req: Request, res: Response) => {
     const { country } = req.params;
     const { startDate, endDate } = req.query;
 
-    const matchFilter: any = { country };
-    
-    if (startDate || endDate) {
-      matchFilter.paymentDate = {};
-      if (startDate) {
-        matchFilter.paymentDate.$gte = new Date(startDate as string);
-      }
-      if (endDate) {
-        matchFilter.paymentDate.$lte = new Date(endDate as string);
-      }
-    }
+    const filters: any = {};
+    if (startDate) filters.startDate = startDate as string;
+    if (endDate) filters.endDate = endDate as string;
 
-    const stats = await Payment.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: null,
-          totalPayments: { $sum: 1 },
-          totalAmountEGP: {
-            $sum: {
-              $cond: [
-                { $eq: ['$currency', 'split'] },
-                { $ifNull: ['$amountEGP', 0] },
-                { $cond: [{ $eq: ['$currency', 'EGP'] }, '$amount', 0] }
-              ]
-            }
-          },
-          totalAmountUSD: {
-            $sum: {
-              $cond: [
-                { $eq: ['$currency', 'split'] },
-                { $ifNull: ['$amountUSD', 0] },
-                { $cond: [{ $eq: ['$currency', 'USD'] }, '$amount', 0] }
-              ]
-            }
-          },
-          salaryPayments: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'salary'] }, 1, 0] }
-          },
-          advancePayments: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'advance'] }, 1, 0] }
-          },
-          loanPayments: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'loan'] }, 1, 0] }
-          },
-          pieceworkPayments: {
-            $sum: { $cond: [{ $eq: ['$paymentType', 'piecework'] }, 1, 0] }
-          },
-        }
-      }
-    ]);
+    const payments = await jsonStorage.getPayments(country, filters);
+
+    const stats = {
+      totalPayments: payments.length,
+      totalAmountEGP: payments.reduce((sum, p) =>
+        sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0
+      ),
+      totalAmountUSD: payments.reduce((sum, p) =>
+        sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0
+      ),
+      salaryPayments: payments.filter(p => p.paymentType === 'salary').length,
+      advancePayments: payments.filter(p => p.paymentType === 'advance').length,
+      loanPayments: payments.filter(p => p.paymentType === 'loan').length,
+      dailyPayments: payments.filter(p => p.paymentType === 'daily').length,
+    };
 
     res.json({
       success: true,
-      data: stats[0] || {
-        totalPayments: 0,
-        totalAmountEGP: 0,
-        totalAmountUSD: 0,
-        salaryPayments: 0,
-        advancePayments: 0,
-        loanPayments: 0,
-        pieceworkPayments: 0,
-      },
+      data: stats,
     });
   } catch (error) {
     console.error('Error fetching payment stats:', error);
@@ -344,46 +332,45 @@ export const getPaymentStats = async (req: Request, res: Response) => {
 // Get employee payment history
 export const getEmployeePayments = async (req: Request, res: Response) => {
   try {
-    const { employeeId } = req.params;
-    const { startDate, endDate, page = 1, limit = 10 } = req.query;
+    const { country, employeeId } = req.params;
+    const { startDate, endDate, page = 1, limit = 1000 } = req.query;
 
-    const filter: any = { employeeId };
-    
-    if (startDate || endDate) {
-      filter.paymentDate = {};
-      if (startDate) {
-        filter.paymentDate.$gte = new Date(startDate as string);
-      }
-      if (endDate) {
-        filter.paymentDate.$lte = new Date(endDate as string);
-      }
-    }
+    const filters: any = { employeeId };
+    if (startDate) filters.startDate = startDate as string;
+    if (endDate) filters.endDate = endDate as string;
 
+    const allPayments = await jsonStorage.getPayments(country, filters);
+
+    // Apply pagination
     const skip = (Number(page) - 1) * Number(limit);
+    const payments = allPayments.slice(skip, skip + Number(limit));
+    const total = allPayments.length;
 
-    const payments = await Payment.find(filter)
-      .populate('projectId', 'name')
-      .populate('sectionId', 'name')
-      .sort({ paymentDate: -1 })
-      .skip(skip)
-      .limit(Number(limit));
+    // Get projects and sections for names
+    const projects = await jsonStorage.getProjects(country);
+    const sections = await jsonStorage.getSections(country);
 
-    const total = await Payment.countDocuments(filter);
+    const enrichedPayments = payments.map(payment => {
+      const project = projects.find(p => p._id === payment.projectId);
+      const section = sections.find(s => s._id === payment.sectionId);
+
+      return {
+        ...payment,
+        id: payment._id,
+        projectName: project?.name,
+        sectionName: section?.name,
+      };
+    });
 
     // Calculate totals
-    const totals = await Payment.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: '$currency',
-          total: { $sum: '$amount' }
-        }
-      }
-    ]);
+    const totals = {
+      EGP: payments.reduce((sum, p) => sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0),
+      USD: payments.reduce((sum, p) => sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0),
+    };
 
     res.json({
       success: true,
-      data: payments,
+      data: enrichedPayments,
       totals,
       pagination: {
         current: Number(page),

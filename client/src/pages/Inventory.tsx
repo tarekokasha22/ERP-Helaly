@@ -8,7 +8,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { toast } from 'react-toastify';
 
 // Flag to use mock API
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type InventoryItem = {
   id: string;
@@ -384,18 +384,18 @@ const mockGetInventoryItems = async (): Promise<InventoryItem[]> => {
 
 const mockCreateInventoryItem = async (item: NewInventoryForm): Promise<InventoryItem> => {
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   const newItem: InventoryItem = {
     id: Date.now().toString(),
     ...item,
     totalValue: item.quantity * item.unitPrice,
     lastUpdated: new Date().toISOString(),
-    status: item.quantity === 0 ? 'out_of_stock' : 
-           item.quantity <= item.minQuantity ? 'low_stock' : 'in_stock'
+    status: item.quantity === 0 ? 'out_of_stock' :
+      item.quantity <= item.minQuantity ? 'low_stock' : 'in_stock'
   };
-  
+
   inventoryItems.push(newItem);
-  
+
   // Automatically create a spending record if project is associated and has value
   if (item.projectId && item.projectId !== '' && newItem.totalValue > 0) {
     try {
@@ -403,13 +403,13 @@ const mockCreateInventoryItem = async (item: NewInventoryForm): Promise<Inventor
         date: new Date().toISOString().split('T')[0],
         amount: newItem.totalValue,
         category: 'materials', // Inventory items are typically materials
-        description: `${item.category === 'materials' ? 'مواد' : 
-                     item.category === 'equipment' ? 'معدات' : 
-                     item.category === 'tools' ? 'أدوات' : 
-                     'مواد استهلاكية'}: ${item.name} (${item.quantity} ${item.unit})`,
+        description: `${item.category === 'materials' ? 'مواد' :
+          item.category === 'equipment' ? 'معدات' :
+            item.category === 'tools' ? 'أدوات' :
+              'مواد استهلاكية'}: ${item.name} (${item.quantity} ${item.unit})`,
         projectId: item.projectId
       };
-      
+
       // Create the spending record
       await mockCreateSpending(spendingData);
       console.log(`Auto-created spending record for inventory item: ${item.name}`);
@@ -418,7 +418,7 @@ const mockCreateInventoryItem = async (item: NewInventoryForm): Promise<Inventor
       // Don't fail the inventory creation if spending creation fails
     }
   }
-  
+
   return newItem;
 };
 
@@ -449,8 +449,8 @@ const Inventory: React.FC = () => {
       if (USE_MOCK_API) {
         return await mockGetInventoryItems();
       } else {
-        // In real implementation, this would be an API call
-        return [];
+        const res = await api.get('/inventory');
+        return res.data?.data || [];
       }
     },
     {
@@ -466,8 +466,8 @@ const Inventory: React.FC = () => {
       if (USE_MOCK_API) {
         return await mockCreateInventoryItem(newItem);
       } else {
-        // In real implementation, this would be an API call
-        return newItem;
+        const res = await api.post('/inventory', newItem);
+        return res.data?.data || newItem;
       }
     },
     {
@@ -477,23 +477,23 @@ const Inventory: React.FC = () => {
         queryClient.invalidateQueries(['dashboard']);
         queryClient.invalidateQueries(['spendings']);
         queryClient.invalidateQueries(['projects']);
-        
+
         // Force refetch dashboard data immediately
         queryClient.refetchQueries(['dashboard']);
-        
+
         // Also invalidate and refetch specific project data if project was selected
         if (form.projectId) {
           queryClient.invalidateQueries(['project', form.projectId]);
           queryClient.refetchQueries(['project', form.projectId]);
         }
-        
+
         // Dispatch custom events to notify dashboard of both inventory and spending changes
         window.dispatchEvent(new CustomEvent('inventoryAdded'));
         window.dispatchEvent(new CustomEvent('spendingAdded'));
-        
+
         setIsCreateModalOpen(false);
         setForm(initialFormState);
-        const message = form.projectId ? 
+        const message = form.projectId ?
           t('inventory', 'itemCreated') + ' وتم إنشاء مصروف تلقائياً للمشروع' :
           t('inventory', 'itemCreated');
         toast.success(message);
@@ -561,10 +561,10 @@ const Inventory: React.FC = () => {
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    
+
     return matchesSearch && matchesCategory && matchesStatus;
   });
 

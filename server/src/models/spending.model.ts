@@ -1,28 +1,33 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISpending extends Document {
-  projectId: mongoose.Types.ObjectId;
-  sectionId: mongoose.Types.ObjectId;
+  _id: string;
+  projectId: string;
+  sectionId: string;
   amount: number;
   category: 'Materials' | 'Labor' | 'Equipment' | 'Overhead' | 'Other';
   description: string;
   date: Date;
   approvedBy: string;
   country: 'egypt' | 'libya';
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const spendingSchema = new Schema<ISpending>(
   {
+    _id: {
+      type: String,
+      required: true,
+    },
     projectId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'Project',
       required: [true, 'Project ID is required'],
     },
     sectionId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'Section',
       required: [true, 'Section ID is required'],
     },
@@ -47,7 +52,7 @@ const spendingSchema = new Schema<ISpending>(
     },
     approvedBy: {
       type: String,
-      required: [true, 'Approved by is required'],
+      required: false,
     },
     country: {
       type: String,
@@ -55,9 +60,9 @@ const spendingSchema = new Schema<ISpending>(
       required: [true, 'Country is required'],
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'User',
-      required: [true, 'Created by is required'],
+      required: false,
     },
   },
   {

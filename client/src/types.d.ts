@@ -63,10 +63,10 @@ interface Employee {
   name: string;
   email?: string;
   phone?: string;
-  employeeType: 'monthly' | 'piecework';
+  employeeType: 'monthly' | 'daily';
   position: string;
   monthlySalary?: number;
-  pieceworkRate?: number;
+  dailyRate?: number;
   currency: 'EGP' | 'USD';
   country: 'egypt' | 'libya';
   active: boolean;
@@ -86,6 +86,9 @@ interface Employee {
   // Project assignments
   assignedProjects?: string[];
   activeProjects?: number;
+  projectId?: string;
+  sectionId?: string;
+  departmentId?: string;
 }
 
 interface Payment {
@@ -93,7 +96,7 @@ interface Payment {
   employeeId: string;
   employeeName?: string;
   employeeType?: string;
-  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'piecework';
+  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'daily';
   amount: number;
   currency: 'EGP' | 'USD' | 'split';
   amountEGP?: number; // For split payments

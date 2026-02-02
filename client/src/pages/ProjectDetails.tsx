@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ArrowLeftIcon, 
+import {
+  ArrowLeftIcon,
   PencilIcon,
   TrashIcon,
   PlusIcon
@@ -16,7 +16,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type Section = {
   id: string;
@@ -66,7 +66,7 @@ const ProjectDetails: React.FC = () => {
   const { formatMoney } = useCurrency();
   const queryClient = useQueryClient();
   const isAdmin = user?.role === 'admin';
-  
+
   // SENIOR DEVELOPER PATTERN: Centralized state management
   const { spendingOperations, sectionOperations, debugLog, healthCheck } = useDashboardState({
     enableDebugging: true,
@@ -77,9 +77,9 @@ const ProjectDetails: React.FC = () => {
 
   const [showAddSpendingModal, setShowAddSpendingModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
 
-  
+
+
   const [newSpending, setNewSpending] = useState({
     date: new Date().toISOString().split('T')[0],
     amount: 0,
@@ -88,19 +88,20 @@ const ProjectDetails: React.FC = () => {
   });
 
 
-  
+
   // Fetch project data with proper error handling
   const { data: project, isLoading, error } = useQuery<Project>(
-    ['project', id], 
+    ['project', id],
     async () => {
       if (!id) throw new Error('Project ID is required');
-      
+
       try {
         if (USE_MOCK_API) {
           return await mockGetProjectById(id);
         } else {
           const res = await api.get(`/projects/${id}`);
-          return res.data;
+          // Backend returns { success: true, data: { ...project } }
+          return res.data.data || res.data;
         }
       } catch (error) {
         console.error('Error fetching project:', error);
@@ -112,7 +113,7 @@ const ProjectDetails: React.FC = () => {
       retry: 1,
       onError: (error: Error) => {
         toast.error(error.message);
-    }
+      }
     }
   );
 
@@ -156,45 +157,46 @@ const ProjectDetails: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setNewSpending(prev => ({ 
-      ...prev, 
-      [name]: name === 'amount' ? parseFloat(value) : value 
+    setNewSpending(prev => ({
+      ...prev,
+      [name]: name === 'amount' ? parseFloat(value) : value
     }));
   };
 
 
 
-  // Create spending mutation
+  // Create spending mutation - يستخدم مسار /api/spendings مع projectId لربط المصروف بالمشروع والتقارير
   const addSpendingMutation = useMutation(
     async (spendingData: any) => {
       if (!id) throw new Error('Project ID is required');
-      
+
       const spendingWithProjectId = {
         ...spendingData,
         projectId: id
       };
-      
+
       if (USE_MOCK_API) {
         return await mockCreateSpending(spendingWithProjectId);
       } else {
-        const response = await api.post(`/projects/${id}/spendings`, spendingData);
-        return response.data;
+        const response = await api.post('/spendings', spendingWithProjectId);
+        const data = response.data?.data || response.data;
+        return { ...data, id: data?._id ?? data?.id };
       }
     },
     {
       onSuccess: async (newSpending) => {
         debugLog('💰 Spending creation success - executing professional state management...');
-        
+
         // Execute centralized state management
         await spendingOperations.onCreate(newSpending);
-        
+
         // Special handling for project-specific invalidation
         queryClient.invalidateQueries(['project', id]);
         queryClient.refetchQueries(['project', id]);
-        
+
         // Verify system health
         healthCheck();
-        
+
         toast.success(t('projectDetails', 'spendingAddedSuccess'));
         setShowAddSpendingModal(false);
         setNewSpending({
@@ -205,34 +207,34 @@ const ProjectDetails: React.FC = () => {
         });
       },
       onError: (error) => {
-      console.error('Add spending error:', error);
-      toast.error(t('projectDetails', 'spendingAddedError'));
+        console.error('Add spending error:', error);
+        toast.error(t('projectDetails', 'spendingAddedError'));
       },
       onSettled: () => {
-      setIsSubmitting(false);
-    }
+        setIsSubmitting(false);
+      }
     }
   );
 
   const handleAddSpending = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!newSpending.date) {
       toast.error(t('validation', 'dateRequired') || 'Date is required');
       return;
     }
-    
+
     if (newSpending.amount <= 0) {
       toast.error(t('validation', 'amountMustBePositive') || 'Amount must be a positive number');
       return;
     }
-    
+
     if (newSpending.category.trim() === '') {
       toast.error(t('validation', 'categoryRequired') || 'Category is required');
       return;
     }
-    
+
     setIsSubmitting(true);
     addSpendingMutation.mutate(newSpending);
   };
@@ -241,7 +243,7 @@ const ProjectDetails: React.FC = () => {
   const deleteSectionMutation = useMutation(
     async (sectionId: string) => {
       if (!id) throw new Error('Project ID is required');
-      
+
       if (USE_MOCK_API) {
         return await mockDeleteSection(sectionId);
       } else {
@@ -251,17 +253,17 @@ const ProjectDetails: React.FC = () => {
     {
       onSuccess: async (_, sectionId) => {
         debugLog('🗑️ Section deletion from project - executing professional state management...');
-        
+
         // Execute centralized state management
         await sectionOperations.onDelete(sectionId);
-        
+
         // Special handling for project-specific invalidation
         queryClient.invalidateQueries(['project', id]);
         queryClient.refetchQueries(['project', id]);
-        
+
         // Verify system health
         healthCheck();
-        
+
         toast.success(t('messages', 'successfulOperation'));
       },
       onError: (error) => {
@@ -277,31 +279,31 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
-  // Delete spending mutation
+  // Delete spending mutation - يستخدم مسار /api/spendings/:id
   const deleteSpendingMutation = useMutation(
     async (spendingId: string) => {
       if (!id) throw new Error('Project ID is required');
-      
+
       if (USE_MOCK_API) {
         return await mockDeleteSpending(spendingId);
       } else {
-        return await api.delete(`/projects/${id}/spendings/${spendingId}`);
+        return await api.delete(`/spendings/${spendingId}`);
       }
     },
     {
       onSuccess: async (_, spendingId) => {
         debugLog('🗑️ Spending deletion from project - executing professional state management...');
-        
+
         // Execute centralized state management
         await spendingOperations.onDelete(spendingId);
-        
+
         // Special handling for project-specific invalidation
         queryClient.invalidateQueries(['project', id]);
         queryClient.refetchQueries(['project', id]);
-        
+
         // Verify system health
         healthCheck();
-        
+
         toast.success(t('messages', 'successfulOperation'));
       },
       onError: (error) => {
@@ -321,7 +323,7 @@ const ProjectDetails: React.FC = () => {
   const deleteProjectMutation = useMutation(
     async () => {
       if (!id) throw new Error('Project ID is required');
-      
+
       if (USE_MOCK_API) {
         return await mockDeleteProject(id);
       } else {
@@ -350,12 +352,12 @@ const ProjectDetails: React.FC = () => {
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">{t('common', 'loading') || 'Loading...'}</div>;
   }
-  
+
   if (error || !project) {
     return (
       <div className="text-center py-12">
         <p className="text-xl text-gray-500">{t('projects', 'notFound') || 'Project not found'}</p>
-        <Link 
+        <Link
           to="/projects"
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
         >
@@ -412,31 +414,28 @@ const ProjectDetails: React.FC = () => {
         <nav className="-mb-px flex" aria-label="Tabs">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`${
-              activeTab === 'overview'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'overview'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm`}
           >
             {t('projectDetails', 'overview')}
           </button>
           <button
             onClick={() => setActiveTab('sections')}
-            className={`${
-              activeTab === 'sections'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'sections'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm`}
           >
             {t('projectDetails', 'sections')}
           </button>
           <button
             onClick={() => setActiveTab('spendings')}
-            className={`${
-              activeTab === 'spendings'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm`}
+            className={`${activeTab === 'spendings'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm`}
           >
             {t('projectDetails', 'spendings')}
           </button>
@@ -564,7 +563,7 @@ const ProjectDetails: React.FC = () => {
                             {t('projects', 'manager')}: {section.manager}
                           </p>
                           <p className="flex items-center text-sm text-gray-500 mr-4 mb-2">
-                            {t('projects', 'targetQuantity')}: {section.targetQuantity} 
+                            {t('projects', 'targetQuantity')}: {section.targetQuantity}
                             {project.unit === 'km' ? ' كم' : project.unit === 'm' ? ' م' : project.unit === 'sq_m' ? ' م²' : ' وحدة'}
                           </p>
                           <p className="flex items-center text-sm text-gray-500 mb-2">
@@ -577,8 +576,8 @@ const ProjectDetails: React.FC = () => {
                             {t('projects', 'progressAutoCalculated')}: {section.progress}%
                           </p>
                           <div className="w-24 bg-gray-200 rounded-full h-2.5">
-                            <div 
-                              className="bg-blue-500 h-2.5 rounded-full" 
+                            <div
+                              className="bg-blue-500 h-2.5 rounded-full"
                               style={{ width: `${section.progress}%` }}
                             ></div>
                           </div>

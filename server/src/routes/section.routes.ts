@@ -15,15 +15,22 @@ router.get('/', authenticate, countryMiddleware, async (req: Request, res: Respo
     const userCountry = req.userCountry;
     const { projectId } = req.query;
     const sections = await jsonStorage.getSections(userCountry, projectId as string);
+
+    // Map _id to id for frontend compatibility
+    const sectionsWithId = sections.map(s => ({
+      ...s,
+      id: s._id  // Add id field for frontend
+    }));
+
     res.status(200).json({
       success: true,
-      data: sections,
+      data: sectionsWithId,
       count: sections.length
     });
   } catch (error: any) {
     console.error('Error fetching sections:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to fetch sections',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -119,7 +126,7 @@ router.get('/mock', authenticate, (req: Request, res: Response) => {
       progress: 85
     }
   ];
-  
+
   res.status(200).json(sections);
 });
 
@@ -132,47 +139,50 @@ router.get('/:id', authenticate, countryMiddleware, async (req: Request, res: Re
   try {
     const { id } = req.params;
     const userCountry = req.userCountry;
-    
+
     // الحصول على جميع الأقسام الخاصة بالدولة
     const sections = await jsonStorage.getSections(userCountry);
     const section = sections.find(s => s._id === id);
-    
+
     if (!section) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'القسم غير موجود أو غير متاح لهذه الدولة' 
+      return res.status(404).json({
+        success: false,
+        message: 'القسم غير موجود أو غير متاح لهذه الدولة'
       });
     }
-    
+
     // الحصول على بيانات المشروع الخاص بهذا القسم
     const projects = await jsonStorage.getProjects(userCountry);
     const project = projects.find(p => p._id === section.projectId);
-    
+
     // الحصول على مصروفات هذا القسم
     const allSpendings = await jsonStorage.getSpendings(userCountry);
     const sectionSpendings = allSpendings.filter(s => s.sectionId === id);
-    
+
     // حساب إجمالي المصروفات
     const totalSpent = sectionSpendings.reduce((sum, spending) => sum + (spending.amount || 0), 0);
-    
+
     // إعداد الاستجابة مع بيانات مفصلة
+    const spendingsWithId = sectionSpendings.map(s => ({ ...s, id: s._id }));
+
     const sectionDetails = {
       ...section,
+      id: section._id,  // Add id field for frontend
       projectName: project?.name || 'غير محدد',
-      spendings: sectionSpendings,
+      spendings: spendingsWithId,
       totalSpent,
       remainingBudget: (section.budget || 0) - totalSpent,
       spendingsCount: sectionSpendings.length
     };
-    
+
     res.status(200).json({
       success: true,
       data: sectionDetails
     });
   } catch (error: any) {
     console.error('خطأ في جلب تفاصيل القسم:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'خطأ في جلب تفاصيل القسم',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -238,9 +248,9 @@ router.get('/project/:projectId', authenticate, (req: Request, res: Response) =>
       progress: 60
     }
   ];
-  
+
   const sections = allSections.filter(s => s.projectId === req.params.projectId);
-  
+
   res.status(200).json(sections);
 });
 
@@ -252,15 +262,15 @@ router.get('/project/:projectId', authenticate, (req: Request, res: Response) =>
 router.post('/', authenticate, countryMiddleware, isAdmin, async (req: Request, res: Response) => {
   try {
     const sectionData = req.body;
-    
+
     // Validate required fields
     if (!sectionData.name || !sectionData.projectId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Section name and project ID are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Section name and project ID are required'
       });
     }
-    
+
     // Country is automatically added by countryMiddleware
     const newSection = await jsonStorage.createSection(sectionData);
     res.status(201).json({
@@ -270,8 +280,8 @@ router.post('/', authenticate, countryMiddleware, isAdmin, async (req: Request, 
     });
   } catch (error: any) {
     console.error('Error creating section:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to create section',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -288,20 +298,20 @@ router.put('/:id', authenticate, countryMiddleware, isAdmin, async (req: Request
     const { id } = req.params;
     const updateData = req.body;
     const userCountry = req.userCountry;
-    
+
     // First, check if section exists and belongs to user's country
     const sections = await jsonStorage.getSections(userCountry);
     const existingSection = sections.find(s => s._id === id);
-    
+
     if (!existingSection) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Section not found in your branch' 
+      return res.status(404).json({
+        success: false,
+        message: 'Section not found in your branch'
       });
     }
-    
+
     const updatedSection = await jsonStorage.updateSection(id, updateData);
-    
+
     res.status(200).json({
       success: true,
       data: updatedSection,
@@ -309,8 +319,8 @@ router.put('/:id', authenticate, countryMiddleware, isAdmin, async (req: Request
     });
   } catch (error: any) {
     console.error('Error updating section:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to update section',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -326,28 +336,28 @@ router.delete('/:id', authenticate, countryMiddleware, isAdmin, async (req: Requ
   try {
     const { id } = req.params;
     const userCountry = req.userCountry;
-    
+
     // First, check if section exists and belongs to user's country
     const sections = await jsonStorage.getSections(userCountry);
     const existingSection = sections.find(s => s._id === id);
-    
+
     if (!existingSection) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Section not found in your branch' 
+      return res.status(404).json({
+        success: false,
+        message: 'Section not found in your branch'
       });
     }
-    
+
     const deleted = await jsonStorage.deleteSection(id);
-    
-    res.status(200).json({ 
-      success: true, 
-      message: 'Section deleted successfully' 
+
+    res.status(200).json({
+      success: true,
+      message: 'Section deleted successfully'
     });
   } catch (error: any) {
     console.error('Error deleting section:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to delete section',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });

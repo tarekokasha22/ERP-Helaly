@@ -4,8 +4,8 @@ import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { 
-  PlusIcon, 
+import {
+  PlusIcon,
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
@@ -20,13 +20,26 @@ interface EmployeeFormData {
   name: string;
   email: string;
   phone: string;
-  employeeType: 'monthly' | 'piecework';
+  employeeType: 'monthly' | 'daily';
   position: string;
   monthlySalary: number;
-  pieceworkRate: number;
+  dailyRate: number;
   currency: 'EGP' | 'USD';
   hireDate: string;
   notes: string;
+  departmentId: string;
+  projectId: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Section {
+  id: string;
+  name: string;
+  projectId?: string;
 }
 
 const Employees: React.FC = () => {
@@ -41,7 +54,8 @@ const Employees: React.FC = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'monthly' | 'piecework'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'monthly' | 'daily'>('all');
+  const [filterProject, setFilterProject] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: '',
@@ -50,16 +64,21 @@ const Employees: React.FC = () => {
     employeeType: 'monthly',
     position: '',
     monthlySalary: 0,
-    pieceworkRate: 0,
+    dailyRate: 0,
     currency: 'EGP',
     hireDate: new Date().toISOString().split('T')[0],
     notes: '',
+    departmentId: '',
+    projectId: '',
   });
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [filteredSections, setFilteredSections] = useState<Section[]>([]);
   const [stats, setStats] = useState({
     totalEmployees: 0,
     activeEmployees: 0,
     monthlyEmployees: 0,
-    pieceworkEmployees: 0,
+    dailyEmployees: 0,
     totalMonthlySalary: 0,
   });
 
@@ -73,10 +92,10 @@ const Employees: React.FC = () => {
       phone: 'Phone',
       employeeType: 'Employee Type',
       monthly: 'Monthly Employee',
-      piecework: 'Piece-Rate Worker',
+      daily: 'Daily Worker',
       position: 'Position',
       monthlySalary: 'Monthly Salary',
-      pieceworkRate: 'Rate Per Piece',
+      dailyRate: 'Daily Rate',
       currency: 'Currency',
       hireDate: 'Hire Date',
       notes: 'Notes',
@@ -89,7 +108,7 @@ const Employees: React.FC = () => {
       totalEmployees: 'Total Employees',
       activeEmployees: 'Active Employees',
       monthlyEmployees: 'Monthly Employees',
-      pieceworkEmployees: 'Piece-Rate Workers',
+      dailyEmployees: 'Daily Workers',
       totalMonthlySalary: 'Total Monthly Salary',
       employeeCreated: 'Employee created successfully',
       employeeUpdated: 'Employee updated successfully',
@@ -110,6 +129,11 @@ const Employees: React.FC = () => {
       paymentType: 'Type',
       paymentMethod: 'Method',
       amount: 'Amount',
+      project: 'Project',
+      department: 'Department',
+      selectProject: 'Select Project',
+      selectDepartment: 'Select Department',
+      noDepartments: 'No departments in this project',
     },
     ar: {
       title: 'إدارة الموظفين والعمال',
@@ -120,10 +144,10 @@ const Employees: React.FC = () => {
       phone: 'الهاتف',
       employeeType: 'نوع الموظف',
       monthly: 'موظف براتب شهري',
-      piecework: 'عامل بالقطعة',
+      daily: 'عامل باليومية',
       position: 'المنصب',
       monthlySalary: 'الراتب الشهري',
-      pieceworkRate: 'سعر القطعة',
+      dailyRate: 'السعر اليومي',
       currency: 'العملة',
       hireDate: 'تاريخ التعيين',
       notes: 'ملاحظات',
@@ -136,7 +160,7 @@ const Employees: React.FC = () => {
       totalEmployees: 'إجمالي الموظفين',
       activeEmployees: 'الموظفين النشطين',
       monthlyEmployees: 'الموظفين الشهريين',
-      pieceworkEmployees: 'العمال بالقطعة',
+      dailyEmployees: 'العمال باليومية',
       totalMonthlySalary: 'إجمالي الرواتب الشهرية',
       employeeCreated: 'تم إنشاء الموظف بنجاح',
       employeeUpdated: 'تم تحديث الموظف بنجاح',
@@ -157,6 +181,11 @@ const Employees: React.FC = () => {
       paymentType: 'النوع',
       paymentMethod: 'الطريقة',
       amount: 'المبلغ',
+      project: 'المشروع',
+      department: 'القسم',
+      selectProject: 'اختر المشروع',
+      selectDepartment: 'اختر القسم',
+      noDepartments: 'لا توجد أقسام في هذا المشروع',
     },
   };
 
@@ -166,13 +195,42 @@ const Employees: React.FC = () => {
   useEffect(() => {
     fetchEmployees();
     fetchStats();
+    fetchProjectsAndSections();
   }, [country]);
 
   useEffect(() => {
     filterEmployees();
-  }, [employees, searchTerm, filterType]);
+  }, [employees, searchTerm, filterType, filterProject]);
+
+  // تصفية الأقسام بناءً على المشروع المختار
+  useEffect(() => {
+    if (formData.projectId) {
+      const filtered = sections.filter(section => section.projectId === formData.projectId);
+      setFilteredSections(filtered);
+    } else {
+      setFilteredSections(sections);
+    }
+  }, [formData.projectId, sections]);
+
+  const fetchProjectsAndSections = async () => {
+    if (!country) return;
+    try {
+      const [projectsRes, sectionsRes] = await Promise.all([
+        api.get('/projects'),
+        api.get('/sections')
+      ]);
+      setProjects(projectsRes.data.data || []);
+      setSections(sectionsRes.data.data || []);
+    } catch (error) {
+      console.error('Error fetching projects/sections:', error);
+    }
+  };
 
   const fetchEmployees = async () => {
+    if (!country) {
+      console.log('Country not set, skipping fetch');
+      return;
+    }
     try {
       setLoading(true);
       const response = await api.get(`/employees/${country}`);
@@ -186,6 +244,9 @@ const Employees: React.FC = () => {
   };
 
   const fetchStats = async () => {
+    if (!country) {
+      return;
+    }
     try {
       const response = await api.get(`/employees/${country}/stats`);
       setStats(response.data.data);
@@ -200,6 +261,11 @@ const Employees: React.FC = () => {
     // Filter by type
     if (filterType !== 'all') {
       filtered = filtered.filter(emp => emp.employeeType === filterType);
+    }
+
+    // Filter by project
+    if (filterProject !== 'all') {
+      filtered = filtered.filter(emp => emp.projectId === filterProject);
     }
 
     // Filter by search term
@@ -217,11 +283,17 @@ const Employees: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Prepare data with sectionId instead of departmentId for backend compatibility
+      const submitData = {
+        ...formData,
+        sectionId: formData.departmentId, // Backend uses sectionId
+      };
+
       if (editingEmployee) {
-        await api.put(`/employees/${country}/${editingEmployee.id}`, formData);
+        await api.put(`/employees/${country}/${editingEmployee.id}`, submitData);
         toast.success(t.employeeUpdated);
       } else {
-        await api.post(`/employees/${country}`, formData);
+        await api.post(`/employees/${country}`, submitData);
         toast.success(t.employeeCreated);
       }
       setShowForm(false);
@@ -244,10 +316,12 @@ const Employees: React.FC = () => {
       employeeType: employee.employeeType,
       position: employee.position,
       monthlySalary: employee.monthlySalary || 0,
-      pieceworkRate: employee.pieceworkRate || 0,
+      dailyRate: employee.dailyRate || 0,
       currency: employee.currency,
-      hireDate: employee.hireDate.split('T')[0],
+      hireDate: employee.hireDate ? employee.hireDate.split('T')[0] : new Date().toISOString().split('T')[0],
       notes: employee.notes || '',
+      departmentId: (employee as any).departmentId || (employee as any).sectionId || '',
+      projectId: (employee as any).projectId || '',
     });
     setShowForm(true);
   };
@@ -292,10 +366,12 @@ const Employees: React.FC = () => {
       employeeType: 'monthly',
       position: '',
       monthlySalary: 0,
-      pieceworkRate: 0,
+      dailyRate: 0,
       currency: 'EGP',
       hireDate: new Date().toISOString().split('T')[0],
       notes: '',
+      departmentId: '',
+      projectId: '',
     });
   };
 
@@ -314,8 +390,15 @@ const Employees: React.FC = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US');
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) {
+      return isRtl ? 'غير متوفر' : 'N/A';
+    }
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return isRtl ? 'غير متوفر' : 'N/A';
+    }
+    return date.toLocaleDateString(isRtl ? 'ar-EG' : 'en-US');
   };
 
   if (loading) {
@@ -357,8 +440,8 @@ const Employees: React.FC = () => {
           <p className="text-2xl font-bold text-blue-600">{stats.monthlyEmployees}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">{t.pieceworkEmployees}</h3>
-          <p className="text-2xl font-bold text-purple-600">{stats.pieceworkEmployees}</p>
+          <h3 className="text-sm font-medium text-gray-500">{t.dailyEmployees}</h3>
+          <p className="text-2xl font-bold text-purple-600">{stats.dailyEmployees}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">{t.totalMonthlySalary}</h3>
@@ -389,7 +472,17 @@ const Employees: React.FC = () => {
             >
               <option value="all">{t.all}</option>
               <option value="monthly">{t.monthly}</option>
-              <option value="piecework">{t.piecework}</option>
+              <option value="daily">{t.daily}</option>
+            </select>
+            <select
+              value={filterProject}
+              onChange={(e) => setFilterProject(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">{language === 'ar' ? 'كل المشاريع' : 'All Projects'}</option>
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
             </select>
             <button
               onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
@@ -451,11 +544,11 @@ const Employees: React.FC = () => {
                   <select
                     required
                     value={formData.employeeType}
-                    onChange={(e) => setFormData({ ...formData, employeeType: e.target.value as 'monthly' | 'piecework' })}
+                    onChange={(e) => setFormData({ ...formData, employeeType: e.target.value as 'monthly' | 'daily' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="monthly">{t.monthly}</option>
-                    <option value="piecework">{t.piecework}</option>
+                    <option value="daily">{t.daily}</option>
                   </select>
                 </div>
                 <div>
@@ -500,18 +593,18 @@ const Employees: React.FC = () => {
                     />
                   </div>
                 )}
-                {formData.employeeType === 'piecework' && (
+                {formData.employeeType === 'daily' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t.pieceworkRate} *
+                      {t.dailyRate} *
                     </label>
                     <input
                       type="number"
                       required
                       min="0"
                       step="0.01"
-                      value={formData.pieceworkRate}
-                      onChange={(e) => setFormData({ ...formData, pieceworkRate: parseFloat(e.target.value) || 0 })}
+                      value={formData.dailyRate}
+                      onChange={(e) => setFormData({ ...formData, dailyRate: parseFloat(e.target.value) || 0 })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -527,6 +620,51 @@ const Employees: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+              </div>
+              {/* Project and Department Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🏗️ {t.project}
+                  </label>
+                  <select
+                    value={formData.projectId}
+                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value, departmentId: '' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t.selectProject}</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🏢 {t.department}
+                  </label>
+                  <select
+                    value={formData.departmentId}
+                    onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={!formData.projectId}
+                  >
+                    <option value="">{t.selectDepartment}</option>
+                    {filteredSections.length === 0 && formData.projectId ? (
+                      <option disabled>{t.noDepartments}</option>
+                    ) : (
+                      filteredSections.map((section) => (
+                        <option key={section.id} value={section.id}>
+                          {section.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                  {formData.projectId && filteredSections.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-1">{t.noDepartments}</p>
+                  )}
                 </div>
               </div>
               <div>
@@ -613,7 +751,7 @@ const Employees: React.FC = () => {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">{payment.paymentType}</td>
                         <td className="px-4 py-3 whitespace-nowrap text-sm">
-                          {payment.currency === 'split' 
+                          {payment.currency === 'split'
                             ? `${formatCurrency(payment.amountEGP || 0, 'EGP')} + ${formatCurrency(payment.amountUSD || 0, 'USD')}`
                             : formatCurrency(payment.amount || 0, payment.currency || 'EGP')
                           }
@@ -642,18 +780,16 @@ const Employees: React.FC = () => {
                     <h3 className="text-lg font-bold text-gray-900">{employee.name}</h3>
                     <p className="text-sm text-gray-500">{employee.position}</p>
                   </div>
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    employee.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${employee.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
                     {employee.active ? t.active : t.inactive}
                   </span>
                 </div>
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className={`px-2 py-1 text-xs rounded ${
-                      employee.employeeType === 'monthly' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                    }`}>
-                      {employee.employeeType === 'monthly' ? t.monthly : t.piecework}
+                    <span className={`px-2 py-1 text-xs rounded ${employee.employeeType === 'monthly' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
+                      {employee.employeeType === 'monthly' ? t.monthly : t.daily}
                     </span>
                   </div>
                   {employee.email && (
@@ -741,12 +877,11 @@ const Employees: React.FC = () => {
                       {employee.position}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        employee.employeeType === 'monthly' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {employee.employeeType === 'monthly' ? t.monthly : t.piecework}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${employee.employeeType === 'monthly'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-purple-100 text-purple-800'
+                        }`}>
+                        {employee.employeeType === 'monthly' ? t.monthly : t.daily}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

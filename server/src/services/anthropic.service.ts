@@ -48,7 +48,7 @@ export async function sendMessageToClaude(
     // Extract text from response
     const textContent = response.content.find(
       (block) => block.type === 'text'
-    ) as Anthropic.Message.TextBlock | undefined;
+    ) as Anthropic.TextBlock | undefined;
 
     if (!textContent) {
       throw new Error('No text content in response');

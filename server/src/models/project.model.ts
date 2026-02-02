@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProject extends Document {
+  _id: string;
   name: string;
   description: string;
   startDate: Date;
@@ -16,13 +17,17 @@ export interface IProject extends Document {
   clientEmail: string;
   clientPhone: string;
   country: 'egypt' | 'libya';
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const projectSchema = new Schema<IProject>(
   {
+    _id: {
+      type: String,
+      required: true,
+    },
     name: {
       type: String,
       required: [true, 'Project name is required'],
@@ -72,19 +77,19 @@ const projectSchema = new Schema<IProject>(
     },
     location: {
       type: String,
-      required: [true, 'Location is required'],
+      required: false,
     },
     clientName: {
       type: String,
-      required: [true, 'Client name is required'],
+      required: false,
     },
     clientEmail: {
       type: String,
-      required: [true, 'Client email is required'],
+      required: false,
     },
     clientPhone: {
       type: String,
-      required: [true, 'Client phone is required'],
+      required: false,
     },
     country: {
       type: String,
@@ -92,9 +97,9 @@ const projectSchema = new Schema<IProject>(
       required: [true, 'Country is required'],
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'User',
-      required: [true, 'Created by is required'],
+      required: false,
     },
   },
   {

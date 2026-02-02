@@ -9,11 +9,11 @@
  */
 export const clearAllAuthData = (): void => {
   console.log('🧹 Clearing all authentication data...');
-  
+
   // مسح بيانات المصادقة
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-  
+
   // مسح أي بيانات أخرى قد تكون مخزنة
   const keysToRemove = [
     'helaly_current_user',
@@ -21,15 +21,35 @@ export const clearAllAuthData = (): void => {
     'auth_session',
     'user_session'
   ];
-  
+
   keysToRemove.forEach(key => {
-    if (localStorage.getItem(key)) {
-      localStorage.removeItem(key);
+    if (sessionStorage.getItem(key)) {
+      sessionStorage.removeItem(key);
       console.log(`🗑️ Removed: ${key}`);
     }
   });
-  
+
   console.log('✅ All authentication data cleared');
+};
+
+export const getToken = (): string | null => {
+  return sessionStorage.getItem('token');
+};
+
+export const getUser = (): any | null => {
+  const userStr = sessionStorage.getItem('user');
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch (e) {
+    return null;
+  }
+};
+
+export const isAuthenticated = (): boolean => {
+  const token = sessionStorage.getItem('token');
+  const user = sessionStorage.getItem('user');
+  return !!token && !!user;
 };
 
 /**
@@ -37,25 +57,25 @@ export const clearAllAuthData = (): void => {
  * Check if valid authentication data exists
  */
 export const hasValidAuthData = (): boolean => {
-  const token = localStorage.getItem('token');
-  const user = localStorage.getItem('user');
-  
+  const token = sessionStorage.getItem('token');
+  const user = sessionStorage.getItem('user');
+
   if (!token || !user) {
     return false;
   }
-  
+
   try {
     // التحقق من تنسيق التوكين
     if (token.length < 10) {
       return false;
     }
-    
+
     // التحقق من بيانات المستخدم
     const userData = JSON.parse(user);
     if (!userData.id || !userData.name) {
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error('Invalid auth data format:', error);
@@ -69,13 +89,13 @@ export const hasValidAuthData = (): boolean => {
  */
 export const resetAppState = (): void => {
   console.log('🔄 Resetting application state...');
-  
+
   // مسح جميع بيانات المصادقة
   clearAllAuthData();
-  
+
   // إعادة تحميل الصفحة للبدء من جديد
   window.location.href = '/login';
-  
+
   console.log('✅ Application state reset complete');
 };
 
@@ -90,16 +110,16 @@ export const performSecurityCheck = (): {
 } => {
   const issues: string[] = [];
   const recommendations: string[] = [];
-  
+
   // فحص localStorage
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
-  
+
   if (token && !token.startsWith('mock-jwt-token-') && process.env.NODE_ENV === 'development') {
     issues.push('Invalid development token format');
     recommendations.push('Clear localStorage and restart application');
   }
-  
+
   if (user) {
     try {
       const userData = JSON.parse(user);
@@ -112,27 +132,27 @@ export const performSecurityCheck = (): {
       recommendations.push('Clear localStorage and re-login');
     }
   }
-  
+
   // فحص بيانات متضاربة
   if (token && !user) {
     issues.push('Token exists without user data');
     recommendations.push('Clear authentication data');
   }
-  
+
   if (!token && user) {
     issues.push('User data exists without token');
     recommendations.push('Clear authentication data');
   }
-  
+
   const isSecure = issues.length === 0;
-  
+
   console.log('🔍 Security check complete:', {
     isSecure,
     issuesFound: issues.length,
     issues,
     recommendations
   });
-  
+
   return { isSecure, issues, recommendations };
 };
 
@@ -143,9 +163,9 @@ export const performSecurityCheck = (): {
 export const developmentCleanup = (): void => {
   if (process.env.NODE_ENV === 'development') {
     console.log('🧪 Development mode: Performing automatic cleanup...');
-    
+
     const securityCheck = performSecurityCheck();
-    
+
     if (!securityCheck.isSecure) {
       console.warn('⚠️ Security issues detected:', securityCheck.issues);
       console.log('🔧 Applying automatic fixes...');

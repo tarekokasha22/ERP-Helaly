@@ -231,7 +231,7 @@ router.get('/section/:sectionId', authenticate, (req: Request, res: Response) =>
 
 /**
  * @route POST /api/spendings
- * @desc Record a new spending
+ * @desc Record a new spending (مرتبط بالمشروع ويظهر في التقارير)
  * @access Private (admin only)
  */
 router.post('/', authenticate, countryMiddleware, isAdmin, async (req: Request, res: Response) => {
@@ -246,11 +246,18 @@ router.post('/', authenticate, countryMiddleware, isAdmin, async (req: Request, 
       });
     }
     
+    // Ensure date and description exist (defaults for التقارير)
+    const dataWithDefaults = {
+      ...spendingData,
+      date: spendingData.date || new Date().toISOString().split('T')[0],
+      description: spendingData.description || spendingData.category || '',
+    };
+    
     // Country is automatically added by countryMiddleware
-    const newSpending = await jsonStorage.createSpending(spendingData);
+    const newSpending = await jsonStorage.createSpending(dataWithDefaults);
     res.status(201).json({
       success: true,
-      data: newSpending,
+      data: { ...newSpending, id: newSpending._id },
       message: 'Spending recorded successfully'
     });
   } catch (error: any) {

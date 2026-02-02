@@ -1,0 +1,36 @@
+[
+  {
+    "name": "عمر خالد محمد",
+    "email": "omar.khaled@helaly.com",
+    "phone": "+218912345678",
+    "employeeType": "monthly",
+    "position": "مهندس موقع",
+    "monthlySalary": 800,
+    "currency": "USD",
+    "country": "libya",
+    "active": true,
+    "hireDate": "2023-02-01",
+    "notes": "مهندس مدني",
+    "createdBy": "admin_libya_001",
+    "_id": "1770049225155-x2a0kkz3d",
+    "createdAt": "2026-02-02T16:20:25.155Z",
+    "updatedAt": "2026-02-02T16:20:25.155Z"
+  },
+  {
+    "name": "خالد أحمد علي",
+    "email": "khaled.ahmed@helaly.com",
+    "phone": "+218912345679",
+    "employeeType": "monthly",
+    "position": "مدير مشروع",
+    "monthlySalary": 1200,
+    "currency": "USD",
+    "country": "libya",
+    "active": true,
+    "hireDate": "2022-08-15",
+    "notes": "مدير مشاريع",
+    "createdBy": "admin_libya_001",
+    "_id": "1770049225155-a7kdz7pb3",
+    "createdAt": "2026-02-02T16:20:25.155Z",
+    "updatedAt": "2026-02-02T16:20:25.155Z"
+  }
+]

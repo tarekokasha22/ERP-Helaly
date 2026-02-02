@@ -1,10 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '../services/api';
-import { mockLogin, mockGetUserProfile } from '../services/mockApi';
-import { clearAllAuthData, developmentCleanup, performSecurityCheck } from '../utils/authUtils';
-
-// Flag to use mock API for development
-const USE_MOCK_API = true;
 
 type User = {
   id: string;
@@ -21,6 +16,7 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string, country: 'egypt' | 'libya') => Promise<void>;
+  loginDirect: (country: 'egypt' | 'libya') => Promise<void>;
   logout: () => void;
 };
 
@@ -38,131 +34,103 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔒 SECURITY INITIALIZATION: التنظيف والفحص الأمني عند بدء التطبيق
   useEffect(() => {
-    console.log('🔒 Starting authentication security initialization...');
-    
-    if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-      // في وضع التطوير، تنظيف تلقائي
-      developmentCleanup();
-      clearAllAuthData();
-      setUser(null);
-    } else {
-      // في وضع الإنتاج، فحص أمني شامل
-      const securityCheck = performSecurityCheck();
-      
-      if (!securityCheck.isSecure) {
-        console.warn('⚠️ Security issues detected in production mode:', securityCheck.issues);
-        clearAllAuthData();
-        setUser(null);
-      }
-    }
-    
-    console.log('✅ Authentication security initialization complete');
-  }, []);
+    // Load user from sessionStorage on mount
+    const loadUser = () => {
+      console.log('🔍 Loading user from sessionStorage...');
 
-  useEffect(() => {
-    // Check if user is logged in
-    const checkAuth = async () => {
-      // 🔒 في وضع التطوير، ننتظر قليلاً للتأكد من مسح البيانات أولاً
-      if (USE_MOCK_API && process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        // في وضع التطوير، نبدأ دائماً بدون مصادقة
-        console.log('🔒 Development mode: Starting without authentication');
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-      
-      const token = localStorage.getItem('token');
-      console.log('🔍 Checking authentication, token exists:', !!token);
-      
-      if (token) {
+      const savedUser = sessionStorage.getItem('user');
+      const savedToken = sessionStorage.getItem('token');
+
+      if (savedUser && savedToken) {
         try {
-          if (USE_MOCK_API) {
-            // التحقق الصارم من تنسيق التوكين
-            if (!token.startsWith('mock-jwt-token-')) {
-              throw new Error('Invalid token format');
-            }
-            const userData = await mockGetUserProfile(token);
-            console.log('✅ Authentication successful:', userData.name);
-            setUser(userData as User);
-          } else {
-            // استخدام API حقيقي للإنتاج
-            api.setAuthToken(token);
-            const response = await api.get('/auth/me');
-            
-            if (response.data.success) {
-              const userData = response.data.user;
-              localStorage.setItem('user', JSON.stringify(userData));
-              api.setCountryHeader(userData.country);
-              console.log('✅ Authentication successful:', userData.name);
-              setUser(userData);
-            } else {
-              throw new Error('Failed to get user profile');
-            }
-          }
+          const userData = JSON.parse(savedUser) as User;
+          setUser(userData);
+
+          // Set API headers
+          api.setAuthToken(savedToken);
+          api.setCountryHeader(userData.country);
+
+          console.log('✅ User loaded:', userData.name);
         } catch (error) {
-          console.error('❌ Authentication failed:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          if (!USE_MOCK_API) {
-            api.removeAuthToken();
-            api.removeCountryHeader();
-          }
+          console.error('❌ Failed to load user:', error);
           setUser(null);
         }
       } else {
-        console.log('🔒 No token found, user not authenticated');
+        console.log('🔒 No saved user found');
         setUser(null);
       }
-      
+
       setIsLoading(false);
     };
 
-    checkAuth();
+    // Small delay to ensure sessionStorage is ready
+    setTimeout(loadUser, 50);
   }, []);
 
+  // Login with password (legacy)
   const login = async (username: string, password: string, country: 'egypt' | 'libya') => {
-    try {
-      if (USE_MOCK_API) {
-        // Use mock API for development
-        const { token, user } = await mockLogin(username, password, country);
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
-        setUser(user as User);
-      } else {
-        // Use real API for production
-        const response = await api.post('/auth/login', { username, password, country });
-        
-        if (response.data.success) {
-          const { token, user } = response.data;
-          
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(user));
-          api.setAuthToken(token);
-          api.setCountryHeader(country);
-          
-          setUser(user as User);
-        } else {
-          throw new Error(response.data.message || 'Login failed');
-        }
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      const message = error.response?.data?.message || error.message || 'Login failed';
-      throw new Error(message);
-    }
+    console.log('🔐 Login attempt:', username, country);
+
+    // Create user directly without API call
+    const userData: User = {
+      id: `admin_${country}_001`,
+      name: country === 'egypt' ? 'مدير مصر' : 'مدير ليبيا',
+      username: username,
+      role: 'admin',
+      country: country,
+    };
+
+    const token = `direct-access-${country}-${Date.now()}`;
+
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('user', JSON.stringify(userData));
+    sessionStorage.setItem('selectedCountry', country);
+
+    api.setAuthToken(token);
+    api.setCountryHeader(country);
+
+    setUser(userData);
+    console.log('✅ Login successful:', userData.name);
+  };
+
+  // Direct login - just select country
+  const loginDirect = async (country: 'egypt' | 'libya') => {
+    console.log('🚀 Direct login for:', country);
+
+    const userData: User = {
+      id: `admin_${country}_001`,
+      name: country === 'egypt' ? 'مدير مصر' : 'مدير ليبيا',
+      username: 'admin',
+      email: `admin@${country}.com`,
+      role: 'admin',
+      country: country,
+    };
+
+    const token = `direct-access-${country}-${Date.now()}`;
+
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('user', JSON.stringify(userData));
+    sessionStorage.setItem('selectedCountry', country);
+
+    api.setAuthToken(token);
+    api.setCountryHeader(country);
+
+    setUser(userData);
+    console.log('✅ Direct login successful:', userData.name);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    if (!USE_MOCK_API) {
-      api.removeAuthToken();
-      api.removeCountryHeader();
-    }
+    console.log('🚪 Logging out...');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('selectedCountry');
+    api.removeAuthToken();
+    api.removeCountryHeader();
     setUser(null);
+
+    // Reload to show country selector
+    window.location.href = '/';
   };
 
   const value = {
@@ -170,6 +138,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: !!user,
     isLoading,
     login,
+    loginDirect,
     logout
   };
 
@@ -178,4 +147,4 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       {children}
     </AuthContext.Provider>
   );
-}; 
+};

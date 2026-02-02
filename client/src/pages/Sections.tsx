@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type Section = {
   id: string;
@@ -38,14 +38,14 @@ const Sections: React.FC = () => {
   const { formatMoney } = useCurrency();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   // SENIOR DEVELOPER PATTERN: Centralized state management
   const { sectionOperations, debugLog, healthCheck } = useDashboardState({
     enableDebugging: true,
     enableOptimisticUpdates: false, // Sections don't need optimistic updates
     refetchDelay: 0
   });
-  
+
   const isAdmin = user?.role === 'admin';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,7 +56,6 @@ const Sections: React.FC = () => {
     status: 'not_started' as const,
     manager: '',
     budget: 0,
-    employees: 0,
     details: '',
     notes: '',
     projectId: '',
@@ -111,18 +110,18 @@ const Sections: React.FC = () => {
     {
       onSuccess: async (newSection) => {
         debugLog('📋 Section creation success - executing professional state management...');
-        
+
         // Execute centralized state management
         await sectionOperations.onCreate(newSection);
-        
+
         // Special handling for project-specific invalidation
         if (newSection.projectId) {
           queryClient.invalidateQueries(['project', newSection.projectId]);
         }
-        
+
         // Verify system health
         healthCheck();
-        
+
         toast.success('تم إنشاء القسم بنجاح وتحديث لوحة التحكم!');
         setShowCreateModal(false);
         setNewSection({
@@ -131,7 +130,6 @@ const Sections: React.FC = () => {
           status: 'not_started',
           manager: '',
           budget: 0,
-          employees: 0,
           details: '',
           notes: '',
           projectId: '',
@@ -161,13 +159,13 @@ const Sections: React.FC = () => {
     {
       onSuccess: async (_, sectionId) => {
         debugLog('🗑️ Section deletion success - executing professional state management...');
-        
+
         // Execute centralized state management
         await sectionOperations.onDelete(sectionId);
-        
+
         // Verify system health
         healthCheck();
-        
+
         toast.success('تم حذف القسم بنجاح وتحديث لوحة التحكم!');
       },
       onError: (error) => {
@@ -181,56 +179,53 @@ const Sections: React.FC = () => {
     const { name, value } = e.target;
     setNewSection(prev => ({
       ...prev,
-      [name]: name === 'budget' || name === 'employees' || name === 'targetQuantity' || name === 'completedQuantity' 
-        ? parseFloat(value) || 0 
+      [name]: name === 'budget' || name === 'targetQuantity' || name === 'completedQuantity'
+        ? parseFloat(value) || 0
         : value
     }));
   };
 
   const handleCreateSection = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (newSection.name.trim() === '') {
       toast.error(t('validation', 'nameRequired') || 'اسم القسم مطلوب');
       return;
     }
-    
+
     if (newSection.manager.trim() === '') {
       toast.error(t('validation', 'managerRequired') || 'مدير القسم مطلوب');
       return;
     }
-    
+
     if (newSection.budget <= 0) {
       toast.error(t('validation', 'budgetMustBePositive') || 'الميزانية يجب أن تكون أكبر من صفر');
       return;
     }
-    
+
     if (newSection.targetQuantity <= 0) {
       toast.error(t('validation', 'targetQuantityRequired') || 'الكمية المستهدفة يجب أن تكون أكبر من صفر');
       return;
     }
-    
+
     if (newSection.completedQuantity < 0) {
       toast.error(t('validation', 'completedQuantityValid') || 'الكمية المنجزة لا يمكن أن تكون قيمة سالبة');
       return;
     }
-    
+
     if (newSection.completedQuantity > newSection.targetQuantity) {
       toast.error(t('validation', 'completedCannotExceedTarget') || 'الكمية المنجزة لا يمكن أن تتجاوز الكمية المستهدفة');
       return;
     }
-    
-    if (newSection.employees < 0) {
-      toast.error(t('validation', 'employeesValid') || 'عدد الموظفين لا يمكن أن يكون قيمة سالبة');
-      return;
-    }
-    
+
+
+
     setIsSubmitting(true);
-    
+
     // Calculate progress
     const progress = newSection.targetQuantity > 0 ? Math.round((newSection.completedQuantity / newSection.targetQuantity) * 100) : 0;
-    
+
     createSectionMutation.mutate({
       ...newSection,
       progress
@@ -270,7 +265,7 @@ const Sections: React.FC = () => {
   };
 
   // Filter sections based on selected project
-  const filteredSections = selectedProjectId 
+  const filteredSections = selectedProjectId
     ? sections.filter(section => section.projectId === selectedProjectId)
     : sections;
 
@@ -338,13 +333,13 @@ const Sections: React.FC = () => {
           <div className="py-10 text-center">
             <BuildingOfficeIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              {selectedProjectId 
+              {selectedProjectId
                 ? (t('sections', 'noSectionsInProject') || 'لا توجد أقسام في هذا المشروع')
                 : (t('sections', 'noSections') || 'لا توجد أقسام')
               }
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {selectedProjectId 
+              {selectedProjectId
                 ? (t('sections', 'noSectionsInProjectDesc') || 'لا توجد أقسام في المشروع المحدد')
                 : (t('sections', 'noSectionsDesc') || 'ابدأ بإنشاء قسم جديد لإدارة مشاريعك')
               }
@@ -399,14 +394,7 @@ const Sections: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-2 sm:flex sm:justify-between">
-                    <div className="sm:flex">
-                      <p className="flex items-center text-sm text-gray-500">
-                        {t('sections', 'manager') || 'المدير'}: {section.manager}
-                      </p>
-                      <p className={`${language === 'ar' ? 'mr-6' : 'ml-6'} flex items-center text-sm text-gray-500`}>
-                        👥 {t('sections', 'employees') || 'الموظفين'}: {section.employees || 0}
-                      </p>
-                    </div>
+
                     <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
                       <p>
                         {t('projects', 'budget') || 'الميزانية'}: {formatMoney(section.budget)}
@@ -531,24 +519,6 @@ const Sections: React.FC = () => {
                         onChange={handleInputChange}
                         className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       />
-                    </div>
-                    <div>
-                      <label htmlFor="employees" className="block text-sm font-medium text-gray-700">
-                        👥 {t('sections', 'employees') || 'عدد الموظفين'}
-                      </label>
-                      <input
-                        type="number"
-                        name="employees"
-                        id="employees"
-                        min="0"
-                        placeholder="مثال: 15"
-                        value={newSection.employees}
-                        onChange={handleInputChange}
-                        className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">
-                        عدد الموظفين العاملين في هذا القسم
-                      </p>
                     </div>
                     <div>
                       <label htmlFor="targetQuantity" className="block text-sm font-medium text-gray-700">

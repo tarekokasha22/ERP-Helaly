@@ -1,8 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IPayment extends Document {
-  employeeId: mongoose.Types.ObjectId;
-  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'piecework'; // راتب، سلف، عهد، تحت الحساب، قطعة
+  _id: string;
+  employeeId: string;
+  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'daily'; // راتب، سلف، عهد، تحت الحساب، يومية
   amount: number; // المبلغ الإجمالي (يُحسب تلقائياً إذا كان split payment)
   currency: 'EGP' | 'USD' | 'split'; // العملة - split للمدفوعات المقسمة
   amountEGP?: number; // المبلغ بالجنيه (للمدفوعات المقسمة)
@@ -11,27 +12,31 @@ export interface IPayment extends Document {
   receiptNumber?: string; // رقم الإيصال
   description: string;
   paymentDate: Date;
-  projectId?: mongoose.Types.ObjectId; // للمدفوعات المرتبطة بمشروع معين
-  sectionId?: mongoose.Types.ObjectId; // للمدفوعات المرتبطة بقسم معين
-  workQuantity?: number; // كمية العمل المنجز (للعمال بالقطعة)
+  projectId?: string; // للمدفوعات المرتبطة بمشروع معين
+  sectionId?: string; // للمدفوعات المرتبطة بقسم معين
+  workQuantity?: number; // كمية العمل المنجز (للعمال باليومية)
   workUnit?: string; // وحدة قياس العمل (متر، كيلو، إلخ)
   approvedBy: string;
   country: 'egypt' | 'libya';
-  createdBy: mongoose.Types.ObjectId;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const paymentSchema = new Schema<IPayment>(
   {
+    _id: {
+      type: String,
+      required: true,
+    },
     employeeId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'Employee',
       required: [true, 'Employee ID is required'],
     },
     paymentType: {
       type: String,
-      enum: ['salary', 'advance', 'loan', 'on_account', 'piecework'],
+      enum: ['salary', 'advance', 'loan', 'on_account', 'daily'],
       required: [true, 'Payment type is required'],
     },
     amount: {
@@ -48,7 +53,7 @@ const paymentSchema = new Schema<IPayment>(
       type: Number,
       min: [0, 'EGP amount must be a positive number'],
       validate: {
-        validator: function(this: IPayment, value: number) {
+        validator: function (this: IPayment, value: number) {
           // amountEGP is required for split payments
           if (this.currency === 'split' && (!value || value <= 0)) {
             return false;
@@ -62,7 +67,7 @@ const paymentSchema = new Schema<IPayment>(
       type: Number,
       min: [0, 'USD amount must be a positive number'],
       validate: {
-        validator: function(this: IPayment, value: number) {
+        validator: function (this: IPayment, value: number) {
           // amountUSD is required for split payments
           if (this.currency === 'split' && (!value || value <= 0)) {
             return false;
@@ -92,44 +97,44 @@ const paymentSchema = new Schema<IPayment>(
       default: Date.now,
     },
     projectId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'Project',
     },
     sectionId: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'Section',
     },
     workQuantity: {
       type: Number,
       min: [0, 'Work quantity must be a positive number'],
       validate: {
-        validator: function(this: IPayment, value: number) {
-          // Work quantity is required for piecework payments
-          if (this.paymentType === 'piecework' && (!value || value <= 0)) {
+        validator: function (this: IPayment, value: number) {
+          // Work quantity is required for daily payments
+          if (this.paymentType === 'daily' && (!value || value <= 0)) {
             return false;
           }
           return true;
         },
-        message: 'Work quantity is required for piecework payments'
+        message: 'Work quantity is required for daily payments'
       }
     },
     workUnit: {
       type: String,
       trim: true,
       validate: {
-        validator: function(this: IPayment, value: string) {
-          // Work unit is required for piecework payments
-          if (this.paymentType === 'piecework' && !value) {
+        validator: function (this: IPayment, value: string) {
+          // Work unit is required for daily payments
+          if (this.paymentType === 'daily' && !value) {
             return false;
           }
           return true;
         },
-        message: 'Work unit is required for piecework payments'
+        message: 'Work unit is required for daily payments'
       }
     },
     approvedBy: {
       type: String,
-      required: [true, 'Approved by is required'],
+      required: false,
       trim: true,
     },
     country: {
@@ -138,9 +143,9 @@ const paymentSchema = new Schema<IPayment>(
       required: [true, 'Country is required'],
     },
     createdBy: {
-      type: Schema.Types.ObjectId,
+      type: String, // Changed from ObjectId
       ref: 'User',
-      required: [true, 'Created by is required'],
+      required: false,
     },
   },
   {

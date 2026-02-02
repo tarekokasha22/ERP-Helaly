@@ -238,5 +238,27 @@
     "country": "libya",
     "createdAt": "2024-01-15T09:00:00.000Z",
     "updatedAt": "2024-01-15T09:00:00.000Z"
+  },
+  {
+    "projectId": "1770049670413-e882hq7nx",
+    "amount": 10000,
+    "category": "materials",
+    "description": "مخزون: ىةىتة (1 و)",
+    "date": "2026-02-02T16:29:14.694Z",
+    "country": "egypt",
+    "_id": "1770049754694-zj0wy34fi",
+    "createdAt": "2026-02-02T16:29:14.694Z",
+    "updatedAt": "2026-02-02T16:29:14.694Z"
+  },
+  {
+    "date": "2026-02-02",
+    "amount": 10000,
+    "category": "ةاا",
+    "description": "اةاة",
+    "projectId": "1770049670413-e882hq7nx",
+    "country": "egypt",
+    "_id": "1770050215858-gwlhrrgck",
+    "createdAt": "2026-02-02T16:36:55.858Z",
+    "updatedAt": "2026-02-02T16:36:55.858Z"
   }
 ]

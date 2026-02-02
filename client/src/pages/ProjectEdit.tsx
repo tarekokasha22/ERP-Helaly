@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type Project = {
   id: string;
@@ -31,14 +31,14 @@ const ProjectEdit: React.FC = () => {
   const { t, language } = useLanguage();
   const { formatMoney } = useCurrency();
   const queryClient = useQueryClient();
-  
+
   // CRITICAL FIX: Add centralized state management for dashboard updates
   const { projectOperations, debugLog, healthCheck } = useDashboardState({
     enableDebugging: true,
     enableOptimisticUpdates: true,
     refetchDelay: 0 // Immediate updates for professional UX
   });
-  
+
   const isAdmin = user?.role === 'admin';
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,13 +57,14 @@ const ProjectEdit: React.FC = () => {
     ['project', id],
     async () => {
       if (!id) throw new Error('Project ID is required');
-      
+
       try {
         if (USE_MOCK_API) {
           return await mockGetProjectById(id);
         } else {
           const res = await api.get(`/projects/${id}`);
-          return res.data;
+          // Backend returns { success: true, data: { ...project } }
+          return res.data.data || res.data;
         }
       } catch (error) {
         console.error('Error fetching project:', error);
@@ -83,7 +84,7 @@ const ProjectEdit: React.FC = () => {
   const updateProjectMutation = useMutation(
     async (projectData: Partial<Project>) => {
       if (!id) throw new Error('Project ID is required');
-      
+
       if (USE_MOCK_API) {
         return await mockUpdateProject(id, projectData);
       } else {
@@ -94,13 +95,13 @@ const ProjectEdit: React.FC = () => {
     {
       onSuccess: async (updatedProject) => {
         debugLog('🚀 Project update success - executing professional state management...');
-        
+
         // CRITICAL FIX: Use centralized state management instead of manual cache invalidation
         await projectOperations.onUpdate(updatedProject);
-        
+
         // Verify system health
         healthCheck();
-        
+
         // Professional user feedback
         toast.success('تم تحديث المشروع بنجاح وتحديث لوحة التحكم!');
         navigate(`/projects/${id}`);
@@ -148,39 +149,39 @@ const ProjectEdit: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (projectData.name?.trim() === '') {
       toast.error(t('validation', 'nameRequired') || 'Project name is required');
       return;
     }
-    
+
     if (!projectData.startDate) {
       toast.error(t('validation', 'startDateRequired') || 'Start date is required');
       return;
     }
-    
+
     if (!projectData.endDate) {
       toast.error(t('validation', 'endDateRequired') || 'End date is required');
       return;
     }
-    
-    if (projectData.startDate && projectData.endDate && 
-        new Date(projectData.startDate) > new Date(projectData.endDate)) {
+
+    if (projectData.startDate && projectData.endDate &&
+      new Date(projectData.startDate) > new Date(projectData.endDate)) {
       toast.error(t('validation', 'endDateMustBeAfterStartDate') || 'End date must be after start date');
       return;
     }
-    
+
     if (projectData.budget !== undefined && projectData.budget <= 0) {
       toast.error(t('validation', 'budgetMustBePositive') || 'Budget must be a positive number');
       return;
     }
-    
+
     if (projectData.manager?.trim() === '') {
       toast.error(t('validation', 'managerRequired') || 'Manager name is required');
       return;
     }
-    
+
     setIsSubmitting(true);
     updateProjectMutation.mutate(projectData);
   };
@@ -193,7 +194,7 @@ const ProjectEdit: React.FC = () => {
     return (
       <div className="text-center py-12">
         <p className="text-xl text-gray-500">{t('projects', 'notFound') || 'Project not found'}</p>
-        <Link 
+        <Link
           to="/projects"
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
         >
@@ -236,7 +237,7 @@ const ProjectEdit: React.FC = () => {
                 className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            
+
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                 {t('projects', 'description')}
@@ -250,7 +251,7 @@ const ProjectEdit: React.FC = () => {
                 className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            
+
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
               <div>
                 <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
@@ -266,7 +267,7 @@ const ProjectEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
                   {t('projects', 'endDate')}
@@ -281,7 +282,7 @@ const ProjectEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                   {t('projects', 'status')}
@@ -299,7 +300,7 @@ const ProjectEdit: React.FC = () => {
                 </select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="budget" className="block text-sm font-medium text-gray-700">
@@ -317,7 +318,7 @@ const ProjectEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="manager" className="block text-sm font-medium text-gray-700">
                   {t('projects', 'manager')}
@@ -333,7 +334,7 @@ const ProjectEdit: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <Link
                 to={`/projects/${id}`}

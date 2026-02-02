@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type Project = {
   id: string;
@@ -34,14 +34,14 @@ const Projects: React.FC = () => {
   const { formatMoney } = useCurrency();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   // SENIOR DEVELOPER PATTERN: Centralized state management
   const { projectOperations, debugLog, healthCheck } = useDashboardState({
     enableDebugging: true,
     enableOptimisticUpdates: true,
     refetchDelay: 0 // Immediate updates for professional UX
   });
-  
+
   const isAdmin = user?.role === 'admin';
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,13 +92,13 @@ const Projects: React.FC = () => {
     {
       onSuccess: async (newProject) => {
         debugLog('🚀 Project creation success - executing professional state management...');
-        
+
         // Execute centralized state management
         await projectOperations.onCreate(newProject);
-        
+
         // Verify system health
         healthCheck();
-        
+
         // Professional user feedback
         toast.success('تم إنشاء المشروع بنجاح وتحديث لوحة التحكم!');
         setShowCreateModal(false);
@@ -142,13 +142,13 @@ const Projects: React.FC = () => {
     {
       onSuccess: async (_, projectId) => {
         debugLog('🗑️ Project deletion success - executing professional state management...');
-        
+
         // Execute centralized state management
         await projectOperations.onDelete(projectId);
-        
+
         // Verify system health
         healthCheck();
-        
+
         toast.success('تم حذف المشروع بنجاح وتحديث لوحة التحكم!');
       },
       onError: (error) => {
@@ -168,43 +168,43 @@ const Projects: React.FC = () => {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (newProject.name.trim() === '') {
       toast.error(t('validation', 'nameRequired'));
       return;
     }
-    
+
     if (newProject.startDate === '') {
       toast.error(t('validation', 'startDateRequired'));
       return;
     }
-    
+
     if (newProject.endDate === '') {
       toast.error(t('validation', 'endDateRequired'));
       return;
     }
-    
+
     if (new Date(newProject.startDate) > new Date(newProject.endDate)) {
       toast.error(t('validation', 'endDateMustBeAfterStartDate'));
       return;
     }
-    
+
     if (newProject.budget <= 0) {
       toast.error(t('validation', 'budgetMustBePositive'));
       return;
     }
-    
+
     if (newProject.manager.trim() === '') {
       toast.error(t('validation', 'managerRequired'));
       return;
     }
-    
+
     if (newProject.totalLength <= 0) {
       toast.error(t('validation', 'totalLengthRequired'));
       return;
     }
-    
+
     setIsSubmitting(true);
     createProjectMutation.mutate(newProject);
   };

@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import jsonStorage from '../storage/jsonStorage';
 import Employee from '../models/employee.model';
 import Payment from '../models/payment.model';
@@ -101,9 +102,106 @@ export async function verifyAdminUsers() {
 }
 
 /**
- * Function to seed sample employees
+ * Check if MongoDB is connected
+ */
+const isMongoDBConnected = (): boolean => {
+  return mongoose.connection.readyState === 1; // 1 = connected
+};
+
+/**
+ * Seed sample employees into JSON storage (when not using MongoDB)
+ */
+export const seedEmployeesJSON = async () => {
+  try {
+    const egyptCount = (await jsonStorage.getEmployees('egypt')).length;
+    const libyaCount = (await jsonStorage.getEmployees('libya')).length;
+    if (egyptCount > 0 && libyaCount > 0) {
+      console.log('👥 Employees already exist in JSON storage, skipping seed');
+      return;
+    }
+
+    const egyptAdmin = await jsonStorage.getUserByUsername('admin', 'egypt');
+    const libyaAdmin = await jsonStorage.getUserByUsername('admin', 'libya');
+    const now = new Date().toISOString();
+
+    if (egyptCount === 0 && egyptAdmin) {
+      const egyptEmployees = [
+        { name: 'أحمد محمد علي', email: 'ahmed.mohamed@helaly.com', phone: '+201234567890', employeeType: 'monthly' as const, position: 'مهندس موقع', monthlySalary: 15000, currency: 'EGP' as const, country: 'egypt' as const, active: true, hireDate: '2023-01-15', notes: 'مهندس مدني', createdBy: egyptAdmin._id },
+        { name: 'محمد حسن إبراهيم', email: 'mohamed.hassan@helaly.com', phone: '+201234567891', employeeType: 'monthly' as const, position: 'مدير مشروع', monthlySalary: 25000, currency: 'EGP' as const, country: 'egypt' as const, active: true, hireDate: '2022-06-01', notes: 'مدير مشاريع', createdBy: egyptAdmin._id },
+        { name: 'علي محمود أحمد', phone: '+201234567892', employeeType: 'daily' as const, position: 'عامل بناء', dailyRate: 150, currency: 'EGP' as const, country: 'egypt' as const, active: true, hireDate: '2023-03-10', notes: 'عامل بناء', createdBy: egyptAdmin._id },
+      ];
+      for (const e of egyptEmployees) {
+        await jsonStorage.createEmployee(e);
+      }
+      console.log('✅ Egypt employees seeded in JSON storage');
+    }
+
+    if (libyaCount === 0 && libyaAdmin) {
+      const libyaEmployees = [
+        { name: 'عمر خالد محمد', email: 'omar.khaled@helaly.com', phone: '+218912345678', employeeType: 'monthly' as const, position: 'مهندس موقع', monthlySalary: 800, currency: 'USD' as const, country: 'libya' as const, active: true, hireDate: '2023-02-01', notes: 'مهندس مدني', createdBy: libyaAdmin._id },
+        { name: 'خالد أحمد علي', email: 'khaled.ahmed@helaly.com', phone: '+218912345679', employeeType: 'monthly' as const, position: 'مدير مشروع', monthlySalary: 1200, currency: 'USD' as const, country: 'libya' as const, active: true, hireDate: '2022-08-15', notes: 'مدير مشاريع', createdBy: libyaAdmin._id },
+      ];
+      for (const e of libyaEmployees) {
+        await jsonStorage.createEmployee(e);
+      }
+      console.log('✅ Libya employees seeded in JSON storage');
+    }
+  } catch (error) {
+    console.error('❌ Error seeding employees (JSON):', error);
+  }
+};
+
+/**
+ * Seed sample payments into JSON storage (when not using MongoDB)
+ */
+export const seedPaymentsJSON = async () => {
+  try {
+    const egyptPayments = (await jsonStorage.getPayments('egypt')).length;
+    const libyaPayments = (await jsonStorage.getPayments('libya')).length;
+    if (egyptPayments > 0 && libyaPayments > 0) {
+      console.log('💰 Payments already exist in JSON storage, skipping seed');
+      return;
+    }
+
+    const egyptEmployees = await jsonStorage.getEmployees('egypt');
+    const libyaEmployees = await jsonStorage.getEmployees('libya');
+    const now = new Date().toISOString();
+
+    for (const emp of [...egyptEmployees, ...libyaEmployees]) {
+      if (emp.employeeType === 'monthly' && emp.monthlySalary) {
+        await jsonStorage.createPayment({
+          employeeId: emp._id,
+          paymentType: 'salary',
+          amount: emp.monthlySalary,
+          currency: emp.currency,
+          paymentMethod: 'bank_transfer',
+          receiptNumber: `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          description: 'راتب شهري',
+          paymentDate: now,
+          approvedBy: 'مدير الموارد البشرية',
+          country: emp.country,
+          createdBy: emp.createdBy,
+        });
+      }
+    }
+    if (egyptEmployees.length > 0 || libyaEmployees.length > 0) {
+      console.log('✅ Sample payments seeded in JSON storage');
+    }
+  } catch (error) {
+    console.error('❌ Error seeding payments (JSON):', error);
+  }
+};
+
+/**
+ * Function to seed sample employees (MongoDB only)
  */
 export const seedEmployees = async () => {
+  // Skip if MongoDB is not connected - use JSON seeding instead
+  if (!isMongoDBConnected()) {
+    await seedEmployeesJSON();
+    return;
+  }
+
   try {
     const employees = await Employee.find();
     
@@ -223,16 +321,31 @@ export const seedEmployees = async () => {
     } else {
       console.log('👥 Employees already exist, skipping seed');
     }
-  } catch (error) {
+  } catch (error: any) {
+    // If MongoDB is not available, just skip seeding (not a critical error)
+    const errorMessage = error?.message || '';
+    if (errorMessage.includes('timeout') || 
+        errorMessage.includes('buffering') || 
+        errorMessage.includes('MongooseError') ||
+        errorMessage.includes('connection')) {
+      console.log('⚠️  MongoDB not available, skipping employee seeding (using JSON storage)');
+      return;
+    }
     console.error('❌ Error seeding employees:', error);
-    throw error;
+    // Don't throw - allow server to continue
   }
 };
 
 /**
- * Function to seed sample payments
+ * Function to seed sample payments (MongoDB or JSON)
  */
 export const seedPayments = async () => {
+  // When MongoDB is not connected, seed into JSON storage instead
+  if (!isMongoDBConnected()) {
+    await seedPaymentsJSON();
+    return;
+  }
+
   try {
     const payments = await Payment.find();
     
@@ -265,12 +378,14 @@ export const seedPayments = async () => {
           }
           
           // Add advance payment
+          const advanceAmount = employee.employeeType === 'monthly' 
+            ? (employee.monthlySalary || 0) * 0.3
+            : (employee.pieceworkRate || 0) * 10;
+          
           samplePayments.push({
             employeeId: employee._id,
             paymentType: 'advance',
-            amount: employee.employeeType === 'monthly' ? 
-              (employee.monthlySalary * 0.3) : 
-              (employee.pieceworkRate * 10),
+            amount: advanceAmount,
             currency: employee.currency,
             paymentMethod: 'cash',
             receiptNumber: `ADV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -288,9 +403,18 @@ export const seedPayments = async () => {
     } else {
       console.log('💰 Payments already exist, skipping seed');
     }
-  } catch (error) {
+  } catch (error: any) {
+    // If MongoDB is not available, just skip seeding (not a critical error)
+    const errorMessage = error?.message || '';
+    if (errorMessage.includes('timeout') || 
+        errorMessage.includes('buffering') || 
+        errorMessage.includes('MongooseError') ||
+        errorMessage.includes('connection')) {
+      console.log('⚠️  MongoDB not available, skipping payment seeding (using JSON storage)');
+      return;
+    }
     console.error('❌ Error seeding payments:', error);
-    throw error;
+    // Don't throw - allow server to continue
   }
 };
 
@@ -310,10 +434,10 @@ export async function seedDatabase() {
     // Verify admin users exist
     await verifyAdminUsers();
     
-    // Seed sample employees
+    // Seed sample employees (only if MongoDB is connected)
     await seedEmployees();
     
-    // Seed sample payments
+    // Seed sample payments (only if MongoDB is connected)
     await seedPayments();
     
     console.log('✅ Database seeding completed successfully!');

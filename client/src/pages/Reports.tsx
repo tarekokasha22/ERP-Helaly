@@ -1,19 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { 
-  Chart as ChartJS, 
-  ArcElement, 
-  Tooltip, 
-  Legend, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Title,
   PointElement,
   LineElement
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
-import { 
+import {
   ArrowDownTrayIcon,
   ChartBarIcon,
   PresentationChartLineIcon,
@@ -28,61 +28,22 @@ import {
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
-import { mockGetProjects, mockGetSections, mockGetSpendings } from '../services/mockApi';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useCountry } from '../contexts/CountryContext';
 import { toast } from 'react-toastify';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
-// Mock inventory API call
-const mockGetInventoryItems = async () => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return [
-    { id: '1', name: 'أسمنت بورتلاند', category: 'materials', quantity: 500, totalValue: 32500, status: 'in_stock', projectId: '1', lastUpdated: new Date().toISOString() },
-    { id: '2', name: 'حديد التسليح 12mm', category: 'materials', quantity: 15, totalValue: 277500, status: 'in_stock', projectId: '2', lastUpdated: new Date().toISOString() },
-    { id: '3', name: 'خرطوم مياه 2 بوصة', category: 'equipment', quantity: 2, totalValue: 50, status: 'low_stock', projectId: '1', lastUpdated: new Date().toISOString() },
-    { id: '4', name: 'مثقاب كهربائي', category: 'tools', quantity: 8, totalValue: 3600, status: 'in_stock', projectId: '3', lastUpdated: new Date().toISOString() },
-    { id: '5', name: 'زيت هيدروليك', category: 'consumables', quantity: 0, totalValue: 0, status: 'out_of_stock', projectId: '2', lastUpdated: new Date().toISOString() }
-  ];
-};
-
-// Mock employees API call
-const mockGetEmployees = async () => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return [
-    { id: '1', name: 'أحمد محمد علي', employeeType: 'monthly', position: 'مهندس موقع', monthlySalary: 15000, currency: 'EGP', active: true, hireDate: '2023-01-15' },
-    { id: '2', name: 'محمد حسن إبراهيم', employeeType: 'monthly', position: 'مدير مشروع', monthlySalary: 25000, currency: 'EGP', active: true, hireDate: '2022-06-01' },
-    { id: '3', name: 'علي محمود أحمد', employeeType: 'piecework', position: 'عامل بناء', pieceworkRate: 150, currency: 'EGP', active: true, hireDate: '2023-03-10' },
-    { id: '4', name: 'سعد عبد الرحمن', employeeType: 'piecework', position: 'عامل حفر', pieceworkRate: 200, currency: 'EGP', active: true, hireDate: '2023-05-20' },
-    { id: '5', name: 'عمر خالد محمد', employeeType: 'monthly', position: 'مهندس موقع', monthlySalary: 800, currency: 'USD', active: true, hireDate: '2023-02-01' }
-  ];
-};
-
-// Mock payments API call
-const mockGetPayments = async () => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return [
-    { id: '1', employeeId: '1', employeeName: 'أحمد محمد علي', paymentType: 'salary', amount: 15000, currency: 'EGP', paymentMethod: 'bank_transfer', paymentDate: '2024-01-01', description: 'راتب شهر يناير' },
-    { id: '2', employeeId: '2', employeeName: 'محمد حسن إبراهيم', paymentType: 'salary', amount: 25000, currency: 'EGP', paymentMethod: 'bank_transfer', paymentDate: '2024-01-01', description: 'راتب شهر يناير' },
-    { id: '3', employeeId: '1', employeeName: 'أحمد محمد علي', paymentType: 'advance', amount: 5000, currency: 'EGP', paymentMethod: 'cash', paymentDate: '2024-01-15', description: 'سلفة مالية' },
-    { id: '4', employeeId: '3', employeeName: 'علي محمود أحمد', paymentType: 'piecework', amount: 3000, currency: 'EGP', paymentMethod: 'cash', paymentDate: '2024-01-20', description: 'دفعة عمل بالقطعة' },
-    { id: '5', employeeId: '5', employeeName: 'عمر خالد محمد', paymentType: 'salary', amount: 800, currency: 'USD', paymentMethod: 'bank_transfer', paymentDate: '2024-01-01', description: 'راتب شهر يناير' }
-  ];
-};
-
-// Flag to use mock API
-const USE_MOCK_API = true;
-
 // Register ChartJS components
 ChartJS.register(
-  ArcElement, 
-  Tooltip, 
-  Legend, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Title,
   PointElement,
   LineElement
@@ -97,54 +58,44 @@ const Reports: React.FC = () => {
   const [filterBy, setFilterBy] = useState<'date' | 'project'>('date');
   const { t, language, dir, formatDate } = useLanguage();
   const { formatMoney } = useCurrency();
+  const { country } = useCountry();
   const chartRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const isRtl = language === 'ar';
 
-  // CRITICAL FIX: Auto-refresh for financial reports
+  // Auto-refresh for financial reports
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (reportType === 'financial') {
-      console.log('🔄 Auto-refresh activated for financial reports');
       interval = setInterval(() => {
         queryClient.invalidateQueries(['projects']);
         queryClient.invalidateQueries(['sections']);
         queryClient.invalidateQueries(['spendings']);
-        console.log('💰 Financial data refreshed at:', new Date().toLocaleTimeString());
-      }, 5000); // Refresh every 5 seconds
+      }, 5000);
     }
 
     return () => {
       if (interval) {
         clearInterval(interval);
-        console.log('🛑 Auto-refresh stopped');
       }
     };
   }, [reportType, queryClient]);
-  
-  // CRITICAL FIX: Fetch real data with auto-refresh for financial reports
+
+  // Fetch real data from API
   const { data: projects = [], isLoading: projectsLoading } = useQuery(['projects'], async () => {
-        if (USE_MOCK_API) {
-      return await mockGetProjects();
-        } else {
-      const res = await api.get('/projects');
-          return res.data?.data || [];
-        }
+    const res = await api.get('/projects');
+    return res.data?.data || [];
   }, {
-    staleTime: 1000, // 1 second for instant financial updates
-    refetchInterval: reportType === 'financial' ? 5000 : false, // Auto-refresh every 5 seconds for financial reports
+    staleTime: 1000,
+    refetchInterval: reportType === 'financial' ? 5000 : false,
     refetchOnWindowFocus: true,
     refetchOnMount: true
   });
 
   const { data: sections = [], isLoading: sectionsLoading } = useQuery(['sections'], async () => {
-    if (USE_MOCK_API) {
-      return await mockGetSections();
-    } else {
-      const res = await api.get('/sections');
-      return res.data?.data || [];
-    }
+    const res = await api.get('/sections');
+    return res.data?.data || [];
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -153,12 +104,8 @@ const Reports: React.FC = () => {
   });
 
   const { data: spendings = [], isLoading: spendingsLoading } = useQuery(['spendings'], async () => {
-    if (USE_MOCK_API) {
-      return await mockGetSpendings();
-    } else {
-      const res = await api.get('/spendings');
-      return res.data?.data || [];
-    }
+    const res = await api.get('/spendings');
+    return res.data?.data || [];
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -167,31 +114,32 @@ const Reports: React.FC = () => {
   });
 
   const { data: inventory = [], isLoading: inventoryLoading } = useQuery(['inventory'], async () => {
-    if (USE_MOCK_API) {
-      return await mockGetInventoryItems();
-    } else {
-      const res = await api.get('/inventory');
-      return res.data?.data || [];
-    }
+    const res = await api.get('/inventory');
+    return res.data?.data || [];
   });
 
-  const { data: employees = [], isLoading: employeesLoading } = useQuery(['employees'], async () => {
-    if (USE_MOCK_API) {
-      return await mockGetEmployees();
-    } else {
-      const res = await api.get('/employees');
-      return res.data?.data || [];
-    }
+  const { data: employees = [], isLoading: employeesLoading } = useQuery(['employees', country], async () => {
+    if (!country) return [];
+    const res = await api.get(`/employees/${country}`);
+    return res.data?.data || [];
+  }, {
+    enabled: !!country,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
   });
 
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery(['payments'], async () => {
-    if (USE_MOCK_API) {
-      return await mockGetPayments();
-    } else {
-      const res = await api.get('/payments');
-      return res.data?.data || [];
-    }
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery(['payments', country], async () => {
+    if (!country) return [];
+    const res = await api.get(`/payments/${country}`);
+    return res.data?.data || [];
+  }, {
+    enabled: !!country,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true
   });
+
 
   const isLoading = projectsLoading || sectionsLoading || spendingsLoading || inventoryLoading || employeesLoading || paymentsLoading;
 
@@ -201,13 +149,29 @@ const Reports: React.FC = () => {
     let filteredSections = sections;
     let filteredSpendings = spendings;
     let filteredInventory = inventory;
+    let filteredEmployees = employees;
+    let filteredPayments = payments;
 
     // Apply project filter
     if (filterBy === 'project' && selectedProject !== 'all') {
       filteredSpendings = spendings.filter(s => s.projectId === selectedProject);
       filteredSections = sections.filter(s => s.projectId === selectedProject);
-      filteredProjects = projects.filter(p => p.id === selectedProject);
+      filteredProjects = projects.filter(p => (p._id || p.id) === selectedProject);
       filteredInventory = inventory.filter(i => i.projectId === selectedProject);
+
+      // Filter employees by project or sections of this project
+      const projectSectionIds = filteredSections.map(s => s._id || s.id);
+      filteredEmployees = employees.filter(e =>
+        e.projectId === selectedProject ||
+        (e.sectionId && projectSectionIds.includes(e.sectionId))
+      );
+
+      // Filter payments by employees in this project or payments linked to project
+      const projectEmployeeIds = filteredEmployees.map(e => e._id || e.id);
+      filteredPayments = payments.filter(p =>
+        p.projectId === selectedProject ||
+        (p.employeeId && projectEmployeeIds.includes(p.employeeId))
+      );
     }
 
     // Apply date filter with more accurate calculations
@@ -217,28 +181,23 @@ const Reports: React.FC = () => {
 
       switch (dateRange) {
         case 'month':
-          // Current month only
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
         case 'quarter':
-          // Last 3 months including current month
           startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
           break;
         case 'half_year':
-          // Last 6 months including current month
           startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
           break;
         case 'year':
-          // Current year from January 1st
           startDate = new Date(now.getFullYear(), 0, 1);
           break;
         default:
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       }
 
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // End of current month
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      // Filter by date range - more accurate filtering
       filteredSpendings = spendings.filter(s => {
         const spendingDate = new Date(s.date || s.createdAt);
         return spendingDate >= startDate && spendingDate <= endDate;
@@ -247,7 +206,6 @@ const Reports: React.FC = () => {
       filteredProjects = projects.filter(p => {
         const projectStartDate = new Date(p.startDate || p.createdAt);
         const projectEndDate = p.endDate ? new Date(p.endDate) : new Date();
-        // Include projects that overlap with the selected date range
         return (projectStartDate <= endDate && projectEndDate >= startDate);
       });
 
@@ -260,13 +218,27 @@ const Reports: React.FC = () => {
         const inventoryDate = new Date(i.lastUpdated);
         return inventoryDate >= startDate && inventoryDate <= endDate;
       });
+
+      // Filter payments by date
+      filteredPayments = payments.filter(p => {
+        const paymentDate = new Date(p.paymentDate || p.createdAt);
+        return paymentDate >= startDate && paymentDate <= endDate;
+      });
+
+      // Filter employees by hire date (show employees hired on or before the end date)
+      filteredEmployees = employees.filter(e => {
+        const hireDate = new Date(e.hireDate || e.createdAt);
+        return hireDate <= endDate;
+      });
     }
-    
+
     return {
       projects: filteredProjects,
       sections: filteredSections,
       spendings: filteredSpendings,
-      inventory: filteredInventory
+      inventory: filteredInventory,
+      employees: filteredEmployees,
+      payments: filteredPayments
     };
   };
 
@@ -279,23 +251,50 @@ const Reports: React.FC = () => {
     const completedProjects = filteredData.projects.filter(p => p.status === 'completed').length;
     const inProgressProjects = filteredData.projects.filter(p => p.status === 'in_progress').length;
     const notStartedProjects = filteredData.projects.filter(p => p.status === 'not_started').length;
-    
-    // Budget statistics
+
+    // Budget statistics - COMPREHENSIVE including all sources
     const totalBudget = filteredData.projects.reduce((sum, p) => sum + (p.budget || 0), 0);
     const sectionsBudget = filteredData.sections.reduce((sum, s) => sum + (s.budget || 0), 0);
-    const totalSpending = filteredData.spendings.reduce((sum, s) => sum + (s.amount || 0), 0);
-    
+    const directSpending = filteredData.spendings.reduce((sum, s) => sum + (s.amount || 0), 0);
+
+    // Inventory costs linked to projects (already included in spendings via auto-create)
+    const totalInventoryValue = filteredData.inventory.reduce((sum, item) => sum + (item.totalValue || 0), 0);
+    const inventoryLinkedToProjects = filteredData.inventory.filter(i => i.projectId).reduce((sum, item) => sum + (item.totalValue || 0), 0);
+
+    // Payment totals
+    const totalPayments = filteredData.payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const paymentsLinkedToProjects = filteredData.payments.filter(p => p.projectId).reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // Total spending is from spendings table (which now includes auto-created inventory and payment entries)
+    const totalSpending = directSpending;
+
     // Section statistics
     const totalSections = filteredData.sections.length;
     const activeSections = filteredData.sections.filter(s => s.status === 'in_progress').length;
-    const averageProgress = filteredData.sections.length > 0 
-      ? filteredData.sections.reduce((sum, s) => sum + (s.progress || 0), 0) / filteredData.sections.length 
+    const averageProgress = filteredData.sections.length > 0
+      ? filteredData.sections.reduce((sum, s) => sum + (s.progress || 0), 0) / filteredData.sections.length
       : 0;
-    
-    // Employee statistics
-    const totalEmployees = filteredData.sections.reduce((sum, s) => sum + (s.employees || 0), 0);
-    
-    // Category breakdown
+
+    // REAL Employee statistics from actual employees data
+    const totalEmployees = filteredData.employees.length;
+    const activeEmployees = filteredData.employees.filter(e => e.active).length;
+    const monthlyEmployees = filteredData.employees.filter(e => e.employeeType === 'monthly').length;
+    const dailyEmployees = filteredData.employees.filter(e => e.employeeType === 'daily').length;
+
+    // Calculate salary costs
+    let totalMonthlySalaries = 0;
+    let totalDailyRates = 0;
+    filteredData.employees.forEach(emp => {
+      if (emp.active) {
+        if (emp.employeeType === 'monthly' && emp.monthlySalary) {
+          totalMonthlySalaries += emp.monthlySalary;
+        } else if (emp.employeeType === 'daily' && emp.dailyRate) {
+          totalDailyRates += emp.dailyRate * 22; // Estimated monthly
+        }
+      }
+    });
+
+    // Category breakdown from spendings (includes auto-created entries)
     const categoryTotals = {
       materials: filteredData.spendings.filter(s => s.category === 'materials').reduce((sum, s) => sum + s.amount, 0),
       labor: filteredData.spendings.filter(s => s.category === 'labor').reduce((sum, s) => sum + s.amount, 0),
@@ -305,7 +304,6 @@ const Reports: React.FC = () => {
     };
 
     // Inventory statistics
-    const totalInventoryValue = filteredData.inventory.reduce((sum, item) => sum + (item.totalValue || 0), 0);
     const lowStockItems = filteredData.inventory.filter(item => item.status === 'low_stock' || item.status === 'out_of_stock').length;
     const inventoryByCategory = {
       materials: filteredData.inventory.filter(item => item.category === 'materials').reduce((sum, item) => sum + (item.totalValue || 0), 0),
@@ -314,7 +312,7 @@ const Reports: React.FC = () => {
       consumables: filteredData.inventory.filter(item => item.category === 'consumables').reduce((sum, item) => sum + (item.totalValue || 0), 0)
     };
 
-        return {
+    return {
       projects: {
         total: totalProjects,
         completed: completedProjects,
@@ -326,7 +324,9 @@ const Reports: React.FC = () => {
         total: totalBudget + sectionsBudget,
         spending: totalSpending,
         remaining: totalBudget + sectionsBudget - totalSpending,
-        utilizationRate: totalBudget > 0 ? (totalSpending / totalBudget) * 100 : 0
+        utilizationRate: totalBudget > 0 ? (totalSpending / totalBudget) * 100 : 0,
+        inventoryLinkedToProjects,
+        paymentsLinkedToProjects
       },
       sections: {
         total: totalSections,
@@ -334,12 +334,25 @@ const Reports: React.FC = () => {
         averageProgress
       },
       employees: {
-        total: totalEmployees
+        total: totalEmployees,
+        active: activeEmployees,
+        monthly: monthlyEmployees,
+        daily: dailyEmployees,
+        totalMonthlySalaries,
+        totalDailyRates,
+        estimatedMonthlyCost: totalMonthlySalaries + totalDailyRates
+      },
+      payments: {
+        total: filteredData.payments.length,
+        totalAmount: totalPayments,
+        linkedToProjects: paymentsLinkedToProjects
       },
       categories: categoryTotals,
       inventory: {
         totalValue: totalInventoryValue,
         lowStockItems,
+        linkedToProjects: inventoryLinkedToProjects,
+        itemsCount: filteredData.inventory.length,
         byCategory: inventoryByCategory
       }
     };
@@ -381,14 +394,21 @@ const Reports: React.FC = () => {
         icon: DocumentTextIcon,
         color: 'purple'
       },
-      
       {
         title: 'عدد الموظفين',
         value: stats.employees.total.toString(),
-        change: 'موزعين على الأقسام',
+        change: `${stats.employees.active || 0} نشط | ${formatMoney(stats.employees.estimatedMonthlyCost || 0)} شهريا`,
         changeType: 'neutral' as const,
         icon: UsersIcon,
         color: 'pink'
+      },
+      {
+        title: 'قيمة المخزون',
+        value: formatMoney(stats.inventory.totalValue),
+        change: `${stats.inventory.itemsCount || 0} عنصر | ${stats.inventory.lowStockItems || 0} منخفض`,
+        changeType: stats.inventory.lowStockItems > 0 ? 'warning' as const : 'neutral' as const,
+        icon: DocumentTextIcon,
+        color: 'teal'
       }
     ];
 
@@ -397,7 +417,7 @@ const Reports: React.FC = () => {
 
   const getProjectCharts = () => {
     const projectStatus = {
-          labels: [
+      labels: [
         'مكتمل',
         'جاري العمل',
         'لم يبدأ'
@@ -430,7 +450,7 @@ const Reports: React.FC = () => {
 
   const getSpendingCharts = () => {
     const spendingByCategory = {
-          labels: [
+      labels: [
         'المواد',
         'العمالة',
         'المعدات',
@@ -439,7 +459,7 @@ const Reports: React.FC = () => {
       ],
       datasets: [{
         data: Object.values(stats.categories),
-              backgroundColor: [
+        backgroundColor: [
           'rgba(59, 130, 246, 0.8)',
           'rgba(16, 185, 129, 0.8)',
           'rgba(245, 158, 11, 0.8)',
@@ -509,44 +529,33 @@ const Reports: React.FC = () => {
   };
 
   const renderDashboardCards = () => {
+    const borderColors = ['border-blue-500', 'border-green-500', 'border-purple-500', 'border-orange-500', 'border-teal-500', 'border-red-500'];
+
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {getDashboardCards().map((card, index) => (
-          <div key={index} className="bg-white overflow-hidden shadow rounded-lg">
+          <div key={index} className={`bg-white overflow-hidden shadow-sm rounded-lg border-l-4 ${borderColors[index % borderColors.length]} hover:shadow-md transition-shadow duration-200`}>
             <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <card.icon 
-                    className={`h-6 w-6 text-${card.color}-600`} 
-                    aria-hidden="true" 
-                  />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      {card.title}
-                    </dt>
-                    <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">
-                        {card.value}
-                      </div>
-                      <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-                        card.changeType === 'increase' ? 'text-green-600' : 
-                        card.changeType === 'warning' ? 'text-yellow-600' : 'text-gray-600'
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">{card.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  {card.change && (
+                    <div className={`mt-2 flex items-center text-sm font-medium ${card.changeType === 'increase' ? 'text-green-600' :
+                      card.changeType === 'warning' ? 'text-yellow-600' : 'text-gray-500'
                       }`}>
-                        {card.changeType === 'increase' && (
-                          <ArrowTrendingUpIcon className="self-center flex-shrink-0 h-4 w-4 text-green-500" aria-hidden="true" />
-                        )}
-                        {card.changeType === 'warning' && (
-                          <ArrowTrendingDownIcon className="self-center flex-shrink-0 h-4 w-4 text-yellow-500" aria-hidden="true" />
-                        )}
-                        <span className="sr-only">
-                          {card.changeType === 'increase' ? 'زيادة' : card.changeType === 'warning' ? 'تحذير' : ''}
-                        </span>
-                        {card.change}
-                      </div>
-                    </dd>
-                  </dl>
+                      {card.changeType === 'increase' && (
+                        <ArrowTrendingUpIcon className="h-4 w-4 mr-1" />
+                      )}
+                      {card.changeType === 'warning' && (
+                        <ArrowTrendingDownIcon className="h-4 w-4 mr-1" />
+                      )}
+                      {card.change}
+                    </div>
+                  )}
+                </div>
+                <div className={`p-3 rounded-full bg-${card.color}-100`}>
+                  <card.icon className={`h-6 w-6 text-${card.color}-600`} aria-hidden="true" />
                 </div>
               </div>
             </div>
@@ -558,7 +567,7 @@ const Reports: React.FC = () => {
 
   const renderProjectReport = () => {
     const { projectStatus, budgetChart } = getProjectCharts();
-    
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -585,10 +594,10 @@ const Reports: React.FC = () => {
             </h3>
             <div className="h-64">
               <Pie data={budgetChart} options={{
-      responsive: true,
+                responsive: true,
                 maintainAspectRatio: false,
-      plugins: {
-        legend: {
+                plugins: {
+                  legend: {
                     position: 'bottom' as const,
                   }
                 }
@@ -596,7 +605,7 @@ const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             ملخص المشاريع
@@ -620,19 +629,18 @@ const Reports: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                                 {filteredData.projects.map((project) => (
-                  <tr key={project.id}>
+                {filteredData.projects.map((project) => (
+                  <tr key={project._id || project.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {project.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        project.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${project.status === 'completed' ? 'bg-green-100 text-green-800' :
                         project.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                            {project.status === 'completed' ? 'مكتمل' :
-                         project.status === 'in_progress' ? 'قيد التنفيذ' : 'لم يبدأ'}
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                        {project.status === 'completed' ? 'مكتمل' :
+                          project.status === 'in_progress' ? 'قيد التنفيذ' : 'لم يبدأ'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -653,7 +661,7 @@ const Reports: React.FC = () => {
 
   const renderFinancialReport = () => {
     const { spendingByCategory } = getSpendingCharts();
-    
+
     return (
       <div className="space-y-6">
         {/* Auto-refresh indicator */}
@@ -684,77 +692,76 @@ const Reports: React.FC = () => {
             </div>
           </div>
 
-                  <div className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
-          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            💰 الملخص المالي الشامل
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-600">إجمالي الميزانية المخططة</p>
-                  <p className="text-2xl font-bold text-blue-700">{formatMoney(stats.budget.total)}</p>
+          <div className="bg-white p-6 rounded-lg shadow border-t-4 border-blue-500">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+              💰 الملخص المالي الشامل
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">إجمالي الميزانية المخططة</p>
+                    <p className="text-2xl font-bold text-blue-700">{formatMoney(stats.budget.total)}</p>
+                  </div>
+                  <div className="text-3xl text-blue-500">💰</div>
                 </div>
-                <div className="text-3xl text-blue-500">💰</div>
+              </div>
+
+              <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-600">إجمالي المصروفات الفعلية</p>
+                    <p className="text-2xl font-bold text-red-700">{formatMoney(stats.budget.spending)}</p>
+                  </div>
+                  <div className="text-3xl text-red-500">💸</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-600">المبلغ المتبقي</p>
+                    <p className="text-2xl font-bold text-green-700">{formatMoney(stats.budget.remaining)}</p>
+                  </div>
+                  <div className="text-3xl text-green-500">💵</div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-600">نسبة الاستخدام</p>
+                    <p className="text-2xl font-bold text-purple-700">{stats.budget.utilizationRate.toFixed(1)}%</p>
+                  </div>
+                  <div className="text-3xl text-purple-500">📊</div>
+                </div>
               </div>
             </div>
-            
-            <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-red-600">إجمالي المصروفات الفعلية</p>
-                  <p className="text-2xl font-bold text-red-700">{formatMoney(stats.budget.spending)}</p>
+
+            {/* Financial Health Indicator */}
+            <div className="mt-6 p-4 rounded-lg bg-gray-50 border">
+              <h4 className="text-lg font-semibold text-gray-800 mb-3">🏥 مؤشر الصحة المالية</h4>
+              <div className="flex items-center">
+                <div className="flex-1 bg-gray-200 rounded-full h-3">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-500 ${stats.budget.utilizationRate < 70 ? 'bg-green-500' :
+                      stats.budget.utilizationRate < 85 ? 'bg-yellow-500' : 'bg-red-500'
+                      }`}
+                    style={{ width: `${Math.min(stats.budget.utilizationRate, 100)}%` }}
+                  ></div>
                 </div>
-                <div className="text-3xl text-red-500">💸</div>
+                <span className="ml-3 text-sm font-medium text-gray-700">
+                  {stats.budget.utilizationRate < 70 ? 'ممتاز 🟢' :
+                    stats.budget.utilizationRate < 85 ? 'جيد 🟡' : 'تحذير 🔴'}
+                </span>
               </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-600">المبلغ المتبقي</p>
-                  <p className="text-2xl font-bold text-green-700">{formatMoney(stats.budget.remaining)}</p>
-                </div>
-                <div className="text-3xl text-green-500">💵</div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-purple-600">نسبة الاستخدام</p>
-                  <p className="text-2xl font-bold text-purple-700">{stats.budget.utilizationRate.toFixed(1)}%</p>
-                </div>
-                <div className="text-3xl text-purple-500">📊</div>
-              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                {stats.budget.utilizationRate < 70 ? 'الميزانية تحت السيطرة وهناك مرونة مالية جيدة' :
+                  stats.budget.utilizationRate < 85 ? 'الميزانية في نطاق طبيعي، مراقبة مستمرة مطلوبة' :
+                    'تجاوز الحد الآمن للميزانية، يلزم مراجعة فورية'}
+              </p>
             </div>
           </div>
-          
-          {/* Financial Health Indicator */}
-          <div className="mt-6 p-4 rounded-lg bg-gray-50 border">
-            <h4 className="text-lg font-semibold text-gray-800 mb-3">🏥 مؤشر الصحة المالية</h4>
-            <div className="flex items-center">
-              <div className="flex-1 bg-gray-200 rounded-full h-3">
-                <div 
-                  className={`h-3 rounded-full transition-all duration-500 ${
-                    stats.budget.utilizationRate < 70 ? 'bg-green-500' :
-                    stats.budget.utilizationRate < 85 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${Math.min(stats.budget.utilizationRate, 100)}%` }}
-                ></div>
-              </div>
-              <span className="ml-3 text-sm font-medium text-gray-700">
-                {stats.budget.utilizationRate < 70 ? 'ممتاز 🟢' :
-                 stats.budget.utilizationRate < 85 ? 'جيد 🟡' : 'تحذير 🔴'}
-              </span>
-            </div>
-            <p className="text-xs text-gray-600 mt-2">
-              {stats.budget.utilizationRate < 70 ? 'الميزانية تحت السيطرة وهناك مرونة مالية جيدة' :
-               stats.budget.utilizationRate < 85 ? 'الميزانية في نطاق طبيعي، مراقبة مستمرة مطلوبة' : 
-               'تجاوز الحد الآمن للميزانية، يلزم مراجعة فورية'}
-            </p>
-          </div>
-        </div>
         </div>
 
         {/* Enhanced spending breakdown */}
@@ -788,7 +795,7 @@ const Reports: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredData.spendings.slice(0, 20).map((spending) => (
-                  <tr key={spending.id} className="hover:bg-gray-50">
+                  <tr key={spending._id || spending.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {new Date(spending.date || spending.createdAt).toLocaleDateString('ar-SA')}
                     </td>
@@ -799,18 +806,17 @@ const Reports: React.FC = () => {
                       {spending.sectionName || 'غير محدد'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        spending.category === 'materials' ? 'bg-blue-100 text-blue-800' :
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${spending.category === 'materials' ? 'bg-blue-100 text-blue-800' :
                         spending.category === 'labor' ? 'bg-green-100 text-green-800' :
-                        spending.category === 'equipment' ? 'bg-purple-100 text-purple-800' :
-                        spending.category === 'consulting' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          spending.category === 'equipment' ? 'bg-purple-100 text-purple-800' :
+                            spending.category === 'consulting' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                        }`}>
                         {spending.category === 'materials' ? '🧱 مواد' :
-                         spending.category === 'labor' ? '👷 عمالة' :
-                         spending.category === 'equipment' ? '🔧 معدات' :
-                         spending.category === 'consulting' ? '💼 استشارات' :
-                         '📦 أخرى'}
+                          spending.category === 'labor' ? '👷 عمالة' :
+                            spending.category === 'equipment' ? '🔧 معدات' :
+                              spending.category === 'consulting' ? '💼 استشارات' :
+                                '📦 أخرى'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
@@ -824,7 +830,7 @@ const Reports: React.FC = () => {
               </tbody>
             </table>
           </div>
-          
+
           {filteredData.spendings.length > 20 && (
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-500">
@@ -841,7 +847,7 @@ const Reports: React.FC = () => {
 
   const renderSectionReport = () => {
     const { sectionProgress } = getSectionCharts();
-    
+
     return (
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-lg shadow">
@@ -893,8 +899,8 @@ const Reports: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                                 {filteredData.sections.map((section) => (
-                  <tr key={section.id}>
+                {filteredData.sections.map((section) => (
+                  <tr key={section._id || section.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {section.name}
                     </td>
@@ -922,7 +928,7 @@ const Reports: React.FC = () => {
 
   const renderInventoryReport = () => {
     const { inventoryByCategory, inventoryStatus } = getInventoryCharts();
-    
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -960,7 +966,7 @@ const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             ملخص المخزون
@@ -974,7 +980,7 @@ const Reports: React.FC = () => {
                 إجمالي العناصر
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {formatMoney(stats.inventory.totalValue)}
@@ -983,7 +989,7 @@ const Reports: React.FC = () => {
                 إجمالي القيمة
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
               <div className="text-2xl font-bold text-yellow-600">
                 {stats.inventory.lowStockItems}
@@ -992,7 +998,7 @@ const Reports: React.FC = () => {
                 مخزون منخفض
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <div className="text-2xl font-bold text-red-600">
                 {filteredData.inventory.filter(item => item.status === 'out_of_stock').length}
@@ -1002,7 +1008,7 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -1026,15 +1032,15 @@ const Reports: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredData.inventory.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item._id || item.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {item.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.category === 'materials' ? 'مواد' :
-                       item.category === 'equipment' ? 'معدات' :
-                       item.category === 'tools' ? 'أدوات' :
-                       item.category === 'consumables' ? 'مواد استهلاكية' : item.category}
+                        item.category === 'equipment' ? 'معدات' :
+                          item.category === 'tools' ? 'أدوات' :
+                            item.category === 'consumables' ? 'مواد استهلاكية' : item.category}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {item.quantity}
@@ -1043,13 +1049,12 @@ const Reports: React.FC = () => {
                       {formatMoney(item.totalValue)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        item.status === 'in_stock' ? 'bg-green-100 text-green-800' :
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'in_stock' ? 'bg-green-100 text-green-800' :
                         item.status === 'low_stock' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
+                          'bg-red-100 text-red-800'
+                        }`}>
                         {item.status === 'in_stock' ? 'متوفر' :
-                         item.status === 'low_stock' ? 'مخزون منخفض' : 'غير متوفر'}
+                          item.status === 'low_stock' ? 'مخزون منخفض' : 'غير متوفر'}
                       </span>
                     </td>
                   </tr>
@@ -1063,12 +1068,24 @@ const Reports: React.FC = () => {
   };
 
   const renderEmployeesReport = () => {
-    const monthlyEmployees = employees.filter(emp => emp.employeeType === 'monthly');
-    const pieceworkEmployees = employees.filter(emp => emp.employeeType === 'piecework');
-    const activeEmployees = employees.filter(emp => emp.active);
-    
+    const employeeList = filteredData.employees;
+    const paymentList = filteredData.payments;
+
+    const monthlyEmployees = employeeList.filter(emp => emp.employeeType === 'monthly');
+    const dailyEmployees = employeeList.filter(emp => emp.employeeType === 'daily');
+
+    const activeEmployees = employeeList.filter(emp => emp.active);
+
+    // Calculate payment totals per employee
+    const getEmployeePaymentTotal = (employeeId: string) => {
+      return paymentList
+        .filter(p => p.employeeId === employeeId)
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+    };
+
     const totalMonthlySalary = monthlyEmployees.reduce((sum, emp) => sum + (emp.monthlySalary || 0), 0);
-    
+    const totalPayments = paymentList.reduce((sum, p) => sum + (p.amount || 0), 0);
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1078,10 +1095,10 @@ const Reports: React.FC = () => {
             </h3>
             <div className="h-64">
               <Pie data={{
-                labels: ['موظفين شهريين', 'عمال بالقطعة'],
+                labels: ['موظفين شهريين', 'عمال يومية'],
                 datasets: [{
-                  data: [monthlyEmployees.length, pieceworkEmployees.length],
-                  backgroundColor: ['#3B82F6', '#8B5CF6'],
+                  data: [monthlyEmployees.length, dailyEmployees.length],
+                  backgroundColor: ['#3B82F6', '#10B981', '#8B5CF6'],
                   borderWidth: 2,
                   borderColor: '#fff'
                 }]
@@ -1105,7 +1122,7 @@ const Reports: React.FC = () => {
               <Pie data={{
                 labels: ['نشط', 'غير نشط'],
                 datasets: [{
-                  data: [activeEmployees.length, employees.length - activeEmployees.length],
+                  data: [activeEmployees.length, employeeList.length - activeEmployees.length],
                   backgroundColor: ['#10B981', '#EF4444'],
                   borderWidth: 2,
                   borderColor: '#fff'
@@ -1122,21 +1139,21 @@ const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             ملخص العاملين
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {employees.length}
+                {employeeList.length}
               </div>
               <div className="text-sm text-gray-600">
                 إجمالي العاملين
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {activeEmployees.length}
@@ -1145,7 +1162,7 @@ const Reports: React.FC = () => {
                 العاملين النشطين
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
                 {monthlyEmployees.length}
@@ -1154,7 +1171,7 @@ const Reports: React.FC = () => {
                 الموظفين الشهريين
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
                 {formatMoney(totalMonthlySalary)}
@@ -1163,8 +1180,17 @@ const Reports: React.FC = () => {
                 إجمالي الرواتب الشهرية
               </div>
             </div>
+
+            <div className="text-center p-4 bg-teal-50 rounded-lg">
+              <div className="text-2xl font-bold text-teal-600">
+                {formatMoney(totalPayments)}
+              </div>
+              <div className="text-sm text-gray-600">
+                إجمالي المدفوعات
+              </div>
+            </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -1181,40 +1207,51 @@ const Reports: React.FC = () => {
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     الراتب/السعر
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    إجمالي المدفوعات
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     الحالة
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {employees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {employee.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.position}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {employee.employeeType === 'monthly' ? 'شهري' : 'بالقطعة'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {employee.employeeType === 'monthly' 
-                        ? `${formatMoney(employee.monthlySalary || 0)} ${employee.currency}`
-                        : `${formatMoney(employee.pieceworkRate || 0)} ${employee.currency}`
-                      }
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        employee.active 
-                          ? 'bg-green-100 text-green-800' 
+                {employeeList.map((employee) => {
+                  const empPaymentTotal = getEmployeePaymentTotal(employee._id || employee.id);
+                  return (
+                    <tr key={employee._id || employee.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {employee.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {employee.position}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {employee.employeeType === 'monthly' ? 'شهري' :
+                          employee.employeeType === 'daily' ? 'يومي' : 'باليومية'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {employee.employeeType === 'monthly'
+                          ? `${formatMoney(employee.monthlySalary || 0)} ${employee.currency}`
+                          : employee.employeeType === 'daily'
+                            ? `${formatMoney(employee.dailyRate || 0)} ${employee.currency}`
+                            : `${formatMoney(employee.dailyRate || 0)} ${employee.currency}`
+                        }
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
+                        {formatMoney(empPaymentTotal)} ج.م
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${employee.active
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
-                        {employee.active ? 'نشط' : 'غير نشط'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                          }`}>
+                          {employee.active ? 'نشط' : 'غير نشط'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1224,13 +1261,24 @@ const Reports: React.FC = () => {
   };
 
   const renderPaymentsReport = () => {
-    const salaryPayments = payments.filter(p => p.paymentType === 'salary');
-    const advancePayments = payments.filter(p => p.paymentType === 'advance');
-    const pieceworkPayments = payments.filter(p => p.paymentType === 'piecework');
-    
-    const totalAmountEGP = payments.filter(p => p.currency === 'EGP').reduce((sum, p) => sum + p.amount, 0);
-    const totalAmountUSD = payments.filter(p => p.currency === 'USD').reduce((sum, p) => sum + p.amount, 0);
-    
+    const paymentList = filteredData.payments;
+    const employeeList = filteredData.employees;
+
+    // Helper to get employee name
+    const getEmployeeName = (payment: any) => {
+      if (payment.employeeName) return payment.employeeName;
+      const employee = employeeList.find(emp => (emp._id || emp.id) === payment.employeeId);
+      return employee?.name || 'غير معروف';
+    };
+
+    const salaryPayments = paymentList.filter(p => p.paymentType === 'salary');
+    const advancePayments = paymentList.filter(p => p.paymentType === 'advance');
+    const dailyPayments = paymentList.filter(p => p.paymentType === 'daily');
+
+    const totalAmountEGP = paymentList.filter(p => p.currency === 'EGP').reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalAmountUSD = paymentList.filter(p => p.currency === 'USD').reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalAmount = paymentList.reduce((sum, p) => sum + (p.amount || 0), 0);
+
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1240,14 +1288,14 @@ const Reports: React.FC = () => {
             </h3>
             <div className="h-64">
               <Pie data={{
-                labels: ['رواتب', 'سلف', 'قطعة', 'عهد', 'تحت الحساب'],
+                labels: ['رواتب', 'سلف', 'يومية', 'عهد', 'تحت الحساب'],
                 datasets: [{
                   data: [
                     salaryPayments.length,
                     advancePayments.length,
-                    pieceworkPayments.length,
-                    payments.filter(p => p.paymentType === 'loan').length,
-                    payments.filter(p => p.paymentType === 'on_account').length
+                    dailyPayments.length,
+                    paymentList.filter(p => p.paymentType === 'loan').length,
+                    paymentList.filter(p => p.paymentType === 'on_account').length
                   ],
                   backgroundColor: ['#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#6B7280'],
                   borderWidth: 2,
@@ -1290,21 +1338,30 @@ const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             ملخص المدفوعات
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {payments.length}
+                {paymentList.length}
+              </div>
+              <div className="text-sm text-gray-600">
+                عدد المدفوعات
+              </div>
+            </div>
+
+            <div className="text-center p-4 bg-teal-50 rounded-lg">
+              <div className="text-2xl font-bold text-teal-600">
+                {formatMoney(totalAmount)}
               </div>
               <div className="text-sm text-gray-600">
                 إجمالي المدفوعات
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
                 {formatMoney(totalAmountEGP)} EGP
@@ -1313,7 +1370,7 @@ const Reports: React.FC = () => {
                 إجمالي المبلغ (جنيه)
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
                 {formatMoney(totalAmountUSD)} USD
@@ -1322,7 +1379,7 @@ const Reports: React.FC = () => {
                 إجمالي المبلغ (دولار)
               </div>
             </div>
-            
+
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
                 {salaryPayments.length}
@@ -1332,7 +1389,7 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -1355,30 +1412,44 @@ const Reports: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {payment.employeeName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.paymentType === 'salary' ? 'راتب' :
-                       payment.paymentType === 'advance' ? 'سلف' :
-                       payment.paymentType === 'piecework' ? 'قطعة' :
-                       payment.paymentType === 'loan' ? 'عهد' : 'تحت الحساب'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatMoney(payment.amount)} {payment.currency}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.paymentMethod === 'cash' ? 'نقداً' :
-                       payment.paymentMethod === 'bank_transfer' ? 'تحويل بنكي' :
-                       payment.paymentMethod === 'check' ? 'شيك' : 'أخرى'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(payment.paymentDate).toLocaleDateString()}
+                {paymentList.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      لا توجد مدفوعات
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paymentList.map((payment) => (
+                    <tr key={payment._id || payment.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {getEmployeeName(payment)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${payment.paymentType === 'salary' ? 'bg-green-100 text-green-800' :
+                          payment.paymentType === 'advance' ? 'bg-yellow-100 text-yellow-800' :
+                            payment.paymentType === 'daily' ? 'bg-purple-100 text-purple-800' :
+                              'bg-gray-100 text-gray-800'
+                          }`}>
+                          {payment.paymentType === 'salary' ? 'راتب' :
+                            payment.paymentType === 'advance' ? 'سلفة' :
+                              payment.paymentType === 'daily' ? 'يومية' :
+                                payment.paymentType === 'loan' ? 'عهدة' : 'تحت الحساب'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        {formatMoney(payment.amount || 0)} {payment.currency}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {payment.paymentMethod === 'cash' ? 'نقداً' :
+                          payment.paymentMethod === 'bank_transfer' ? 'تحويل بنكي' :
+                            payment.paymentMethod === 'check' ? 'شيك' : 'أخرى'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        {new Date(payment.paymentDate || payment.createdAt).toLocaleDateString('ar-EG')}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1390,7 +1461,7 @@ const Reports: React.FC = () => {
   const handleExportAsImage = async () => {
     try {
       toast.info('جاري إنشاء التقرير كصورة...');
-      
+
       if (chartRef.current) {
         const canvas = await html2canvas(chartRef.current, {
           scale: 2,
@@ -1402,13 +1473,13 @@ const Reports: React.FC = () => {
           allowTaint: true,
           foreignObjectRendering: true
         });
-        
+
         // Create download link
         const link = document.createElement('a');
         link.download = `الهلالي-${getReportTitle()}-${new Date().toISOString().split('T')[0]}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
-        
+
         toast.success('تم إنشاء التقرير كصورة بنجاح! (يحتفظ بالنصوص العربية كما تراها)');
       }
     } catch (error) {
@@ -1420,7 +1491,7 @@ const Reports: React.FC = () => {
   const handleExportAsHTML = async () => {
     try {
       toast.info('جاري إنشاء التقرير كصفحة ويب...');
-      
+
       if (chartRef.current) {
         // Create full HTML content
         const htmlContent = `
@@ -1454,14 +1525,14 @@ const Reports: React.FC = () => {
     </div>
 </body>
 </html>`;
-        
+
         // Create and download HTML file
         const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `الهلالي-${getReportTitle()}-${new Date().toISOString().split('T')[0]}.html`;
         link.click();
-        
+
         toast.success('تم إنشاء التقرير كصفحة ويب بنجاح! (يمكن طباعته من المتصفح مع النصوص العربية)');
       }
     } catch (error) {
@@ -1473,19 +1544,19 @@ const Reports: React.FC = () => {
   const handleExportReport = async () => {
     try {
       const title = getReportTitle();
-      const projectName = filterBy === 'project' && selectedProject !== 'all' 
-        ? projects.find(p => p.id === selectedProject)?.name 
+      const projectName = filterBy === 'project' && selectedProject !== 'all'
+        ? projects.find(p => p.id === selectedProject)?.name
         : null;
-      
+
       const dateRangeText = filterBy === 'date' ? {
         'month': 'One Month',
-        'quarter': '3 Months', 
+        'quarter': '3 Months',
         'half_year': '6 Months',
         'year': 'Full Year'
       }[dateRange] : null;
-      
+
       toast.info('جاري إنشاء التقرير...');
-      
+
       // Create PDF document with improved settings for Arabic text compatibility
       const doc = new jsPDF({
         orientation: 'portrait',
@@ -1494,7 +1565,7 @@ const Reports: React.FC = () => {
         putOnlyUsedFonts: true,
         compress: false // Disable compression to avoid text encoding issues
       });
-      
+
       // Set document properties to support better text rendering
       doc.setProperties({
         title: 'Al-Helaly Construction Company Report',
@@ -1502,59 +1573,59 @@ const Reports: React.FC = () => {
         author: 'Al-Helaly ERP System',
         creator: 'Al-Helaly Construction Management System'
       });
-      
+
       // Add title and date
       const currentDate = new Date();
       const formattedDate = currentDate.toLocaleDateString('en-GB');
-      
+
       // Title with improved styling
       doc.setFontSize(22);
       doc.setFont(undefined, 'bold');
       const mainTitle = 'Al-Helaly Construction Company';
       doc.text(mainTitle, 105, 20, { align: 'center' });
-      
+
       doc.setFontSize(16);
       doc.setFont(undefined, 'normal');
       const subtitle = 'Roads & Infrastructure Division';
       doc.text(subtitle, 105, 30, { align: 'center' });
-      
-              // Report type title  
-        doc.setFontSize(18);
-        doc.setFont(undefined, 'bold');
-        let reportTitle = getReportTitleEn();
-        if (projectName) {
-          reportTitle += ` - ${convertArabicToEnglish(projectName)}`;
-        }
-        if (dateRangeText) {
-          reportTitle += ` (${dateRangeText})`;
-        }
-        doc.text(reportTitle, 105, 45, { align: 'center' });
-        
-        // Date
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'normal');
-        const dateLabel = `Report Generated: ${formattedDate}`;
-        doc.text(dateLabel, 105, 55, { align: 'center' });
-      
-              // Add filter information
-        let yPosition = 65;
-        if (filterBy === 'project' && projectName) {
-          doc.setFontSize(10);
-          const projectLabel = `Filtered by Project: ${convertArabicToEnglish(projectName)}`;
-          doc.text(projectLabel, 105, yPosition, { align: 'center' });
-          yPosition += 8;
-        }
-        if (filterBy === 'date' && dateRangeText) {
-          doc.setFontSize(10);
-          const periodLabel = `Time Period: ${dateRangeText}`;
-          doc.text(periodLabel, 105, yPosition, { align: 'center' });
-          yPosition += 8;
-        }
-        
-        // Add data tables based on report type
-        yPosition += 15;
+
+      // Report type title  
+      doc.setFontSize(18);
+      doc.setFont(undefined, 'bold');
+      let reportTitle = getReportTitleEn();
+      if (projectName) {
+        reportTitle += ` - ${convertArabicToEnglish(projectName)}`;
+      }
+      if (dateRangeText) {
+        reportTitle += ` (${dateRangeText})`;
+      }
+      doc.text(reportTitle, 105, 45, { align: 'center' });
+
+      // Date
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'normal');
+      const dateLabel = `Report Generated: ${formattedDate}`;
+      doc.text(dateLabel, 105, 55, { align: 'center' });
+
+      // Add filter information
+      let yPosition = 65;
+      if (filterBy === 'project' && projectName) {
+        doc.setFontSize(10);
+        const projectLabel = `Filtered by Project: ${convertArabicToEnglish(projectName)}`;
+        doc.text(projectLabel, 105, yPosition, { align: 'center' });
+        yPosition += 8;
+      }
+      if (filterBy === 'date' && dateRangeText) {
+        doc.setFontSize(10);
+        const periodLabel = `Time Period: ${dateRangeText}`;
+        doc.text(periodLabel, 105, yPosition, { align: 'center' });
+        yPosition += 8;
+      }
+
+      // Add data tables based on report type
+      yPosition += 15;
       await addReportData(doc, yPosition);
-      
+
       // Add chart image if available
       if (chartRef.current) {
         try {
@@ -1564,30 +1635,30 @@ const Reports: React.FC = () => {
             useCORS: true,
             backgroundColor: '#ffffff'
           });
-          
+
           const imgData = canvas.toDataURL('image/png');
           const imgWidth = 180;
           const imgHeight = Math.min(canvas.height * imgWidth / canvas.width, 150);
-          
+
           // Add new page if needed
           if (yPosition + imgHeight > 250) {
             doc.addPage();
             yPosition = 20;
           }
-          
+
           doc.addImage(imgData, 'PNG', 15, yPosition, imgWidth, imgHeight);
         } catch (err) {
           console.error('Error capturing chart:', err);
         }
       }
-      
+
       // Save the PDF with descriptive filename
       const timestamp = currentDate.toISOString().split('T')[0];
       const safeProjectName = projectName ? convertArabicToEnglish(projectName).replace(/\s+/g, '-') : '';
       const fileName = `Al-Helaly-${reportType}${safeProjectName ? `-${safeProjectName}` : ''}${dateRangeText ? `-${dateRange}` : ''}-${timestamp}.pdf`;
-      
+
       doc.save(fileName);
-      
+
       toast.success('تم إنشاء ملف PDF بنجاح! (النصوص بالإنجليزية لتجنب مشاكل الترميز)');
     } catch (error) {
       console.error('Error exporting report:', error);
@@ -1598,7 +1669,7 @@ const Reports: React.FC = () => {
   // Helper function to convert Arabic text to English for PDF compatibility
   const convertArabicToEnglish = (text: string): string => {
     if (!text) return '';
-    
+
     // If text contains Arabic characters, replace with English equivalent or transliteration
     const arabicToEnglishMap: { [key: string]: string } = {
       // Project names
@@ -1611,7 +1682,7 @@ const Reports: React.FC = () => {
       'إنشاء طريق جديد': 'New Road Construction',
       // Manager names
       'أحمد محمد علي': 'Ahmed Mohamed Ali',
-      'سارة أحمد حسن': 'Sara Ahmed Hassan', 
+      'سارة أحمد حسن': 'Sara Ahmed Hassan',
       'محمد إبراهيم': 'Mohamed Ibrahim',
       'فاطمة محمود': 'Fatima Mahmoud',
       'عمر خالد': 'Omar Khaled',
@@ -1650,7 +1721,7 @@ const Reports: React.FC = () => {
         return a & a;
       }, 0);
       const id = Math.abs(hash).toString(36).substr(0, 5).toUpperCase();
-      
+
       // Generate a generic English name based on the type
       if (text.includes('طريق') || text.includes('مشروع')) {
         return `Road Project ${id}`;
@@ -1680,7 +1751,7 @@ const Reports: React.FC = () => {
           const projectsTableData = projects.map(project => [
             convertArabicToEnglish(project.name),
             project.status === 'completed' ? 'Completed' :
-            project.status === 'in_progress' ? 'In Progress' : 'Not Started',
+              project.status === 'in_progress' ? 'In Progress' : 'Not Started',
             `${project.progress || 0}%`,
             formatMoney(project.budget),
             convertArabicToEnglish(project.manager)
@@ -1691,12 +1762,12 @@ const Reports: React.FC = () => {
             body: projectsTableData,
             startY: yPosition,
             margin: { left: margin, right: margin },
-            styles: { 
+            styles: {
               fontSize: 10,
               cellPadding: 3,
               halign: 'left'
             },
-            headStyles: { 
+            headStyles: {
               fillColor: [59, 130, 246],
               textColor: 255,
               halign: 'center'
@@ -1709,14 +1780,14 @@ const Reports: React.FC = () => {
           const sectionsTableData = sections.map(section => {
             const project = projects.find(p => p.id === section.projectId);
             const unit = project?.unit === 'km' ? 'km' :
-                        project?.unit === 'm' ? 'm' :
-                        project?.unit === 'sq_m' ? 'm²' : 'unit';
-            
+              project?.unit === 'm' ? 'm' :
+                project?.unit === 'sq_m' ? 'm²' : 'unit';
+
             return [
               convertArabicToEnglish(section.name),
               convertArabicToEnglish(project?.name || ''),
               section.status === 'completed' ? 'Completed' :
-              section.status === 'in_progress' ? 'In Progress' : 'Not Started',
+                section.status === 'in_progress' ? 'In Progress' : 'Not Started',
               `${section.progress || 0}%`,
               `${section.completedQuantity || 0} ${unit}`,
               `${section.targetQuantity || 0} ${unit}`,
@@ -1729,12 +1800,12 @@ const Reports: React.FC = () => {
             body: sectionsTableData,
             startY: yPosition,
             margin: { left: margin, right: margin },
-            styles: { 
+            styles: {
               fontSize: 8,
               cellPadding: 2,
               halign: 'left'
             },
-            headStyles: { 
+            headStyles: {
               fillColor: [59, 130, 246],
               textColor: 255,
               halign: 'center',
@@ -1761,12 +1832,12 @@ const Reports: React.FC = () => {
             body: financialData,
             startY: yPosition,
             margin: { left: margin, right: margin },
-            styles: { 
+            styles: {
               fontSize: 12,
               cellPadding: 4,
               halign: 'left'
             },
-            headStyles: { 
+            headStyles: {
               fillColor: [59, 130, 246],
               textColor: 255,
               halign: 'center'
@@ -1800,12 +1871,12 @@ const Reports: React.FC = () => {
             body: overviewData,
             startY: yPosition,
             margin: { left: margin, right: margin },
-            styles: { 
+            styles: {
               fontSize: 11,
               cellPadding: 4,
               halign: 'left'
             },
-            headStyles: { 
+            headStyles: {
               fillColor: [59, 130, 246],
               textColor: 255,
               halign: 'center'
@@ -1885,7 +1956,12 @@ const Reports: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-64">جاري تحميل التقارير...</div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-64 bg-white rounded-lg shadow-sm">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-600 font-medium">جاري تحميل التقارير...</p>
+      </div>
+    );
   }
 
   return (
@@ -1896,54 +1972,14 @@ const Reports: React.FC = () => {
           <PresentationChartLineIcon className="h-8 w-8 text-blue-600 mr-3" />
           <h1 className="text-2xl font-bold text-gray-900">تقارير النظام</h1>
         </div>
-        <div className="flex flex-col items-end">
-          <div className="flex space-x-2 flex-wrap">
-            <button
-              type="button"
-              onClick={handleExportReport}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-4 w-4" aria-hidden="true" />
-              PDF
-            </button>
-            <button
-              type="button"
-              onClick={handleExportAsImage}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              📸 صورة
-            </button>
-            <button
-              type="button"
-              onClick={handleExportAsHTML}
-              className="inline-flex items-center px-3 py-2 border border-green-300 text-sm font-medium rounded-md shadow-sm text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            >
-              🌐 ويب
-            </button>
-          </div>
-          <div className="text-xs text-gray-500 mt-2 text-right max-w-md">
-            <p>📄 <strong>PDF:</strong> نصوص إنجليزية للتوافق</p>
-            <p>📸 <strong>صورة:</strong> نصوص عربية عالية الجودة</p>
-            <p>🌐 <strong>ويب:</strong> صفحة HTML قابلة للطباعة بالعربية</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Export Options Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <div className="text-2xl">ℹ️</div>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">حل مشكلة الرموز الغريبة في PDF - خيارات التصدير البديلة</h3>
-            <div className="mt-2 text-sm text-blue-700 space-y-1">
-              <p>📄 <strong>PDF:</strong> ملف PDF بنصوص إنجليزية للتوافق مع جميع البرامج وضمان عدم ظهور رموز غريبة</p>
-              <p>📸 <strong>صورة:</strong> صورة عالية الجودة تحتفظ بالنصوص العربية والتنسيق الأصلي كما تراه</p>
-              <p>🌐 <strong>صفحة ويب:</strong> ملف HTML يمكن فتحه في المتصفح وطباعته مع النصوص العربية الكاملة</p>
-            </div>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={handleExportReport}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
+          تحميل التقرير PDF
+        </button>
       </div>
 
       {/* Report Settings */}
@@ -1951,7 +1987,7 @@ const Reports: React.FC = () => {
         <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
           إعدادات التقرير
         </h3>
-        
+
         {/* Filter Options */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
@@ -1985,7 +2021,7 @@ const Reports: React.FC = () => {
           {filterBy === 'date' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">الفترة الزمنية</label>
-            <select
+              <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as any)}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
@@ -1994,26 +2030,26 @@ const Reports: React.FC = () => {
                 <option value="quarter">3 شهور</option>
                 <option value="half_year">6 شهور</option>
                 <option value="year">سنة كاملة</option>
-            </select>
-          </div>
+              </select>
+            </div>
           )}
 
           {filterBy === 'project' && (
-          <div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">المشروع</label>
-            <select
+              <select
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               >
                 <option value="all">جميع المشاريع</option>
                 {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
+                  <option key={project._id || project.id} value={project._id || project.id}>
                     {project.name}
                   </option>
                 ))}
-            </select>
-          </div>
+              </select>
+            </div>
           )}
         </div>
 
@@ -2031,11 +2067,10 @@ const Reports: React.FC = () => {
             <button
               key={report.key}
               onClick={() => setReportType(report.key as ReportType)}
-              className={`p-4 rounded-lg border-2 text-center transition-colors ${
-                reportType === report.key
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-gray-300 text-gray-700'
-              }`}
+              className={`p-4 rounded-lg border-2 text-center transition-colors ${reportType === report.key
+                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                }`}
             >
               <report.icon className="h-6 w-6 mx-auto mb-2" />
               <div className="text-sm font-medium">{report.label}</div>
@@ -2053,7 +2088,7 @@ const Reports: React.FC = () => {
         </div>
         {renderReportContent()}
       </div>
-          
+
       {/* Enhanced Footer */}
       <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-6 sm:rounded-lg border border-gray-200">
         <div className="text-center">
@@ -2062,7 +2097,7 @@ const Reports: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-800">شركة الهلالي للمقاولات</h3>
             <div className="h-1 w-16 bg-blue-500 rounded-full ml-3"></div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
             <div className="text-center">
               <p className="font-medium text-gray-700 mb-2">📊 إحصائيات التقرير</p>
@@ -2073,7 +2108,7 @@ const Reports: React.FC = () => {
                 <p>📦 {filteredData.inventory.length} عنصر مخزون</p>
               </div>
             </div>
-            
+
             <div className="text-center">
               <p className="font-medium text-gray-700 mb-2">🕐 معلومات التوقيت</p>
               <div className="space-y-1">
@@ -2086,7 +2121,7 @@ const Reports: React.FC = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="text-center">
               <p className="font-medium text-gray-700 mb-2">🎯 نوع التقرير</p>
               <div className="space-y-1">
@@ -2096,7 +2131,7 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="mt-6 pt-4 border-t border-gray-300">
             <p className="text-xs text-gray-500">
               نظام إدارة المشاريع والتقارير - شركة الهلالي للمقاولات والبناء © {new Date().getFullYear()}

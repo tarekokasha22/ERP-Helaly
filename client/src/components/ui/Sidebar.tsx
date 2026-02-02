@@ -1,11 +1,10 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { NavLink } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { 
-  HomeIcon, 
+import {
+  HomeIcon,
   ClipboardDocumentListIcon,
   DocumentTextIcon,
   UsersIcon,
@@ -14,7 +13,6 @@ import {
   ArchiveBoxIcon,
   CurrencyDollarIcon,
   UserGroupIcon,
-  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 
 type SidebarProps = {
@@ -37,14 +35,40 @@ type NavigationGroup = {
   expanded?: boolean;
 };
 
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  email?: string;
+  role: string;
+  country: 'egypt' | 'libya';
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapsed }) => {
-  const { user } = useAuth();
   const { language, t } = useLanguage();
+  const [user, setUser] = useState<User | null>(null);
   const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({
     construction: true,
     administration: true,
   });
-  
+  const [userRole, setUserRole] = useState<string>('user');
+  const [userCountry, setUserCountry] = useState<string>('');
+
+  // Load user from sessionStorage
+  useEffect(() => {
+    const userData = sessionStorage.getItem('user');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser); // Keep setting the full user object
+        setUserRole(parsedUser.role || 'user');
+        setUserCountry(parsedUser.country);
+      } catch (error) {
+        console.error('Failed to parse user data:', error);
+      }
+    }
+  }, []);
+
   const navigationGroups: NavigationGroup[] = [
     {
       groupNameKey: 'dashboard',
@@ -71,8 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
       groupNameKey: 'administration',
       items: [
         { nameKey: 'reports', to: '/reports', icon: ChartPieIcon },
-        { nameKey: 'aiChat', to: '/ai-chat', icon: ChatBubbleLeftRightIcon },
-        { nameKey: 'users', to: '/users', icon: UsersIcon, requireAdmin: true },
+        { nameKey: 'users', to: '/users', icon: UsersIcon },
       ]
     },
     {
@@ -82,40 +105,34 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
       ]
     }
   ];
-  
+
   const toggleGroupExpanded = (groupKey: string) => {
     setExpandedGroups((prev) => ({
       ...prev,
       [groupKey]: !prev[groupKey]
     }));
   };
-  
+
   const renderNavigationItem = (item: NavigationItem) => {
-    if (item.requireAdmin && user?.role !== 'admin') {
-      return null;
-    }
-    
     return (
       <NavLink
         key={item.nameKey}
         to={item.to}
         className={({ isActive }) =>
-          `group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150 ${
-            isActive
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+          `group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150 ${isActive
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
           }`
         }
       >
         {({ isActive }) => (
           <>
             <div className={`${isActive ? 'bg-white bg-opacity-30' : 'bg-blue-100'} p-1.5 rounded-md ${language === 'ar' ? 'ml-3' : 'mr-3'}`}>
-        <item.icon
-                className={`flex-shrink-0 h-4 w-4 ${
-                  isActive ? 'text-white' : 'text-blue-700'
-                }`}
-          aria-hidden="true"
-        />
+              <item.icon
+                className={`flex-shrink-0 h-4 w-4 ${isActive ? 'text-white' : 'text-blue-700'
+                  }`}
+                aria-hidden="true"
+              />
             </div>
             {!collapsed && <span>{t('navigation', item.nameKey)}</span>}
           </>
@@ -123,32 +140,27 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
       </NavLink>
     );
   };
-  
+
   const renderNavigationGroup = (group: NavigationGroup, isMobile: boolean = false) => {
     const isExpanded = expandedGroups[group.groupNameKey] !== false;
-    
-    // Skip rendering groups with no visible items for the current user role
-    const visibleItems = group.items.filter(item => !item.requireAdmin || user?.role === 'admin');
+    const visibleItems = group.items;
     if (visibleItems.length === 0) return null;
-    
-    // For groups with just one item, render the item directly without a group header
+
     if (visibleItems.length === 1 && group.groupNameKey === 'dashboard') {
       return renderNavigationItem(visibleItems[0]);
     }
-    
+
     return (
       <div key={group.groupNameKey} className="space-y-1">
         {group.groupNameKey !== 'dashboard' && (
           <button
             onClick={() => toggleGroupExpanded(group.groupNameKey)}
-            className={`flex items-center w-full px-3 py-2 text-left text-sm font-medium rounded-md ${
-              isMobile ? 'text-base' : 'text-xs'
-            } uppercase tracking-wider text-blue-800 hover:bg-blue-50`}
+            className={`flex items-center w-full px-3 py-2 text-left text-sm font-medium rounded-md ${isMobile ? 'text-base' : 'text-xs'
+              } uppercase tracking-wider text-blue-800 hover:bg-blue-50`}
           >
-            <ChevronDownIcon 
-              className={`${language === 'ar' ? 'ml-1' : 'mr-1'} flex-shrink-0 h-4 w-4 transition-transform text-blue-600 ${
-                isExpanded ? '' : 'transform -rotate-90'
-              }`}
+            <ChevronDownIcon
+              className={`${language === 'ar' ? 'ml-1' : 'mr-1'} flex-shrink-0 h-4 w-4 transition-transform text-blue-600 ${isExpanded ? '' : 'transform -rotate-90'
+                }`}
               aria-hidden="true"
             />
             {!collapsed && <span className="font-semibold">{t('navigation', group.groupNameKey)}</span>}
@@ -162,7 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
       </div>
     );
   };
-  
+
   return (
     <>
       {/* Mobile sidebar */}
@@ -210,7 +222,6 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
                 </div>
               </Transition.Child>
               <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto bg-gradient-to-br from-blue-50 to-blue-100">
-                {/* Logo section removed from mobile sidebar - now in header only */}
                 <nav className="mt-5 px-3 space-y-4">
                   {navigationGroups.map((group) => renderNavigationGroup(group, true))}
                 </nav>
@@ -225,11 +236,11 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
                     </div>
                     <div className={`${language === 'ar' ? 'mr-3' : 'ml-3'}`}>
                       <p className="text-sm font-bold text-gray-800">
-                        {user?.name}
+                        {user?.name || 'مستخدم'}
                       </p>
                       <div className="mt-1">
                         <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
-                        {user?.role === 'admin' ? t('header', 'adminRole') : t('header', 'workerRole')}
+                          {user?.role === 'admin' ? 'مدير' : 'موظف'}
                         </span>
                       </div>
                     </div>
@@ -238,39 +249,37 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
               </div>
             </div>
           </Transition.Child>
-          <div className="flex-shrink-0 w-14">{/* Force sidebar to shrink to fit close icon */}</div>
+          <div className="flex-shrink-0 w-14"></div>
         </Dialog>
       </Transition.Root>
 
-      {/* Desktop sidebar - Modern Design */}
+      {/* Desktop sidebar */}
       <div className={`hidden md:flex md:flex-col md:fixed md:inset-y-0 md:top-0 md:left-0 md:h-screen transition-all duration-300 ease-in-out z-10 ${collapsed ? 'md:w-16' : 'md:w-64'}`}>
         <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-gradient-to-br from-blue-50 to-blue-100 h-full">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-            {/* Logo section removed - now in header only */}
-            
-            {!collapsed && (
-            <div className="px-3 mb-6">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 bg-blue-100 rounded-md p-1">
-                    <UserIcon className="h-6 w-6 text-blue-600" />
+            {!collapsed && user && (
+              <div className="px-3 mb-6">
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 bg-blue-100 rounded-md p-1">
+                      <UserIcon className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className={`${language === 'ar' ? 'mr-3' : 'ml-3'} flex-1 min-w-0`}>
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {user.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {user.country === 'egypt' ? '🇪🇬 مصر' : '🇱🇾 ليبيا'}
+                      </p>
+                    </div>
                   </div>
-                  <div className={`${language === 'ar' ? 'mr-3' : 'ml-3'} flex-1 min-w-0`}>
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.name}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {user?.email}
-                    </p>
+                  <div className="mt-2 text-xs">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      {user.role === 'admin' ? 'مدير' : 'موظف'}
+                    </span>
                   </div>
-                </div>
-                <div className="mt-2 text-xs">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                    {user?.role === 'admin' ? t('header', 'adminRole') : t('header', 'workerRole')}
-                  </span>
                 </div>
               </div>
-            </div>
             )}
 
             <nav className="flex-1 px-2 space-y-2">
@@ -278,10 +287,10 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
             </nav>
           </div>
           <div className="flex-shrink-0 flex border-t border-gray-200 p-4 justify-end">
-            <button 
+            <button
               onClick={() => setCollapsed(!collapsed)}
               className="p-1 rounded-md bg-blue-100 text-blue-600 hover:bg-blue-200"
-              title={collapsed ? t('navigation', 'expandSidebar') : t('navigation', 'collapseSidebar')}
+              title={collapsed ? 'توسيع' : 'تصغير'}
             >
               {language === 'ar' ? (
                 collapsed ? <ChevronLeftIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />
@@ -296,4 +305,4 @@ const Sidebar: React.FC<SidebarProps> = ({ open, setOpen, collapsed, setCollapse
   );
 };
 
-export default Sidebar; 
+export default Sidebar;

@@ -21,19 +21,19 @@ export const countryMiddleware = (req: CountryRequest, res: Response, next: Next
   try {
     // Get country from JWT token (set by auth middleware)
     const userCountry = req.user?.country;
-    
+
     if (!userCountry) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Country not specified in user token' 
+      return res.status(400).json({
+        success: false,
+        message: 'Country not specified in user token'
       });
     }
 
     // Validate country value - CRITICAL FOR SECURITY
     if (userCountry !== 'egypt' && userCountry !== 'libya') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid country. Must be egypt or libya' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid country. Must be egypt or libya'
       });
     }
 
@@ -55,8 +55,8 @@ export const countryMiddleware = (req: CountryRequest, res: Response, next: Next
     next();
   } catch (error: any) {
     console.error('Country middleware error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Country middleware error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -69,22 +69,65 @@ export const countryMiddleware = (req: CountryRequest, res: Response, next: Next
 export const setUserCountry = countryMiddleware;
 
 /**
+ * Middleware to validate country parameter from URL
+ * Used by routes like /api/employees/:country
+ */
+export const validateCountry = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { country } = req.params;
+
+    // Validate country parameter
+    if (!country) {
+      console.error('❌ Country parameter missing in URL');
+      return res.status(400).json({
+        success: false,
+        message: 'Country parameter is required'
+      });
+    }
+
+    // Log for debugging
+    console.log(`🌍 Validating country: ${country}`);
+
+    // Check valid country values
+    if (country !== 'egypt' && country !== 'libya') {
+      console.error(`❌ Invalid country: ${country}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid country. Must be egypt or libya'
+      });
+    }
+
+    // Set country on request for controllers
+    (req as CountryRequest).userCountry = country as 'egypt' | 'libya';
+
+    next();
+  } catch (error: any) {
+    console.error('Country validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Country validation error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
  * Validate country access for specific operations
  */
 export const validateCountryAccess = (req: CountryRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.userCountry) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Country access validation failed' 
+      return res.status(403).json({
+        success: false,
+        message: 'Country access validation failed'
       });
     }
     next();
   } catch (error) {
     console.error('Country validation error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Country validation error' 
+    res.status(500).json({
+      success: false,
+      message: 'Country validation error'
     });
   }
 };
@@ -97,7 +140,7 @@ export const addCountryFilter = (userCountry: 'egypt' | 'libya', additionalFilte
   if (!userCountry) {
     throw new Error('User country is required for data filtering');
   }
-  
+
   return {
     ...additionalFilters,
     country: userCountry,
@@ -120,7 +163,7 @@ export const validateDocumentCountry = (document: any, userCountry: 'egypt' | 'l
  * CRITICAL: Use this for all data responses
  */
 export const filterByCountry = <T extends { country: string }>(
-  documents: T[], 
+  documents: T[],
   userCountry: 'egypt' | 'libya'
 ): T[] => {
   if (!userCountry) {
@@ -137,7 +180,7 @@ export const ensureCountryField = (data: any, userCountry: 'egypt' | 'libya') =>
   if (!userCountry) {
     throw new Error('User country is required');
   }
-  
+
   return {
     ...data,
     country: userCountry

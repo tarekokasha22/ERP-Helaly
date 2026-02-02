@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import mongoose from 'mongoose';
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import sectionRoutes from './routes/section.routes';
@@ -13,6 +14,8 @@ import dashboardRoutes from './routes/dashboard.routes';
 import employeeRoutes from './routes/employee.routes';
 import paymentRoutes from './routes/payment.routes';
 import aiRoutes from './routes/ai.routes';
+import inventoryRoutes from './routes/inventory.routes';
+import integrationRoutes from './routes/integration.routes';
 import { seedDatabase } from './utils/seed';
 
 // Load environment variables
@@ -39,7 +42,16 @@ if (!fs.existsSync(logsDir)) {
 
 // Initialize JSON storage files
 const initializeStorage = () => {
-  const files = ['users.json', 'projects.json', 'sections.json', 'spendings.json'];
+  const files = [
+    'users.json',
+    'projects.json',
+    'sections.json',
+    'spendings.json',
+    'employees_egypt.json',
+    'employees_libya.json',
+    'payments_egypt.json',
+    'payments_libya.json'
+  ];
   files.forEach(file => {
     const filePath = path.join(dataDir, file);
     if (!fs.existsSync(filePath)) {
@@ -81,11 +93,13 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/integration', integrationRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: NODE_ENV,
     storage: 'JSON'
@@ -105,8 +119,8 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('❌ Server Error:', err);
-  res.status(500).json({ 
-    success: false, 
+  res.status(500).json({
+    success: false,
     message: NODE_ENV === 'development' ? err.message : 'Internal server error',
     ...(NODE_ENV === 'development' && { stack: err.stack })
   });
@@ -114,9 +128,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    message: `Route ${req.originalUrl} not found` 
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.originalUrl} not found`
   });
 });
 
@@ -125,18 +139,45 @@ const startServer = async () => {
   try {
     // Initialize JSON storage
     initializeStorage();
-    
+
     // Seed database with default data
     await seedDatabase();
     console.log('🌱 Database seeded successfully');
-    
+
     // Start the server
+    // Connect to MongoDB if URI is provided
+    if (process.env.MONGO_URI) {
+      try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log('✅ Connected to MongoDB');
+      } catch (error) {
+        console.error('❌ MongoDB connection error:', error);
+        // Continue even if Mongo fails, falling back to JSON? 
+        // Or fail? For hybrid, maybe we want to know. 
+        // But jsonStorage checks readyState, so it will fallback to JSON if connection fails.
+      }
+    } else {
+      console.log('⚠️  No MONGO_URI found, using local JSON storage');
+    }
+
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌍 Environment: ${NODE_ENV}`);
+      console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
       console.log(`📁 Data directory: ${dataDir}`);
       console.log(`🔗 CORS origin: ${CORS_ORIGIN}`);
       console.log(`📋 API endpoints available at http://localhost:${PORT}/api`);
+
+      // Log registered routes for debugging
+      console.log('🛣️  Registered Routes:');
+      app._router.stack.forEach((r: any) => {
+        if (r.route && r.route.path) {
+          console.log(`   ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${r.route.path}`);
+        } else if (r.name === 'router') {
+          // Inner router
+          const regex = r.regexp.toString();
+          const cleanPath = regex.replace(/^\/\^\\/, '').replace(/\\\/\?\(\?=\\\/\|\$\)\/i$/, '');
+          console.log(`   ROUTER ${cleanPath}`);
+        }
+      });
     });
   } catch (error) {
     console.error('💥 Failed to start server:', error);

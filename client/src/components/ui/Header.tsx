@@ -1,20 +1,34 @@
-import React from 'react';
-import { 
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
   Bars3Icon,
   UserIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
 }
 
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  role: string;
+  country: 'egypt' | 'libya';
+}
+
 const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
-  const { user, logout } = useAuth();
   const { t, language, setLanguage, dir } = useLanguage();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // User is coming from AuthContext now, no need for local state or effect
 
   const handleLogout = () => {
     logout();
@@ -45,12 +59,11 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
             src="/logo2.webp"
             alt="Helaly Trans Company Logo"
             className="h-10 w-auto"
-            style={{ 
+            style={{
               maxWidth: '150px',
               objectFit: 'contain'
             }}
             onError={(e) => {
-              // Fallback to other logo if first one fails
               e.currentTarget.src = "/logo.png";
             }}
           />
@@ -58,7 +71,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
             الهلالي
           </span>
         </div>
-        
+
         <div className="flex flex-1"></div>
         <div className="flex items-center gap-x-4 lg:gap-x-6">
           {/* Language Toggle */}
@@ -90,9 +103,7 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
             <button
               type="button"
               className="-m-1.5 flex items-center p-1.5"
-              id="user-menu-button"
-              aria-expanded="false"
-              aria-haspopup="true"
+              onClick={() => setShowDropdown(!showDropdown)}
             >
               <span className="sr-only">Open user menu</span>
               <div className="h-8 w-8 rounded-full bg-gray-50 flex items-center justify-center">
@@ -105,6 +116,21 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
                 <ChevronDownIcon className="ml-2 h-5 w-5 text-gray-400" aria-hidden="true" />
               </span>
             </button>
+
+            {/* Dropdown Menu */}
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+                <div className="py-1">
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-gray-400" />
+                    تسجيل الخروج
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -112,4 +138,4 @@ const Header: React.FC<HeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
   );
 };
 
-export default Header; 
+export default Header;

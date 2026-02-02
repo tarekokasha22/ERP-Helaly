@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  PlusIcon, 
-  PencilIcon, 
-  TrashIcon, 
-  UserCircleIcon 
+import {
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import { mockGetUsers, mockCreateUser, mockUpdateUser, mockDeleteUser } from '../services/mockApi';
@@ -13,7 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type User = {
   id: string;
@@ -29,7 +29,7 @@ const Users: React.FC = () => {
   const { t, language } = useLanguage();
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
-  
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -45,7 +45,7 @@ const Users: React.FC = () => {
 
   // Fetch users data with proper error handling
   const { data: users = [], isLoading } = useQuery<User[]>(
-    ['users'], 
+    ['users'],
     async () => {
       try {
         if (USE_MOCK_API) {
@@ -79,11 +79,11 @@ const Users: React.FC = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['users']);
         queryClient.refetchQueries(['users']);
-        
+
         // Dispatch custom event to notify dashboard of new user
         window.dispatchEvent(new CustomEvent('userAdded'));
         console.log('🚀 User created successfully!');
-        
+
         toast.success(t('messages', 'successfulOperation'));
         setShowAddModal(false);
         resetForm();
@@ -200,11 +200,11 @@ const Users: React.FC = () => {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateUserForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
     createUserMutation.mutate(formData);
   };
@@ -212,22 +212,22 @@ const Users: React.FC = () => {
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
-    
+
     if (!validateUserForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     // Create payload without password if it's empty
     const payload = { ...formData };
     if (!payload.password) {
       delete payload.password;
     }
-    
-    updateUserMutation.mutate({ 
-      id: selectedUser.id, 
-      userData: payload 
+
+    updateUserMutation.mutate({
+      id: selectedUser.id,
+      userData: payload
     });
   };
 
@@ -237,7 +237,7 @@ const Users: React.FC = () => {
       toast.error(t('messages', 'cannotDeleteYourself') || "You cannot delete your own account");
       return;
     }
-    
+
     if (window.confirm(t('messages', 'confirmDelete'))) {
       deleteUserMutation.mutate(userId);
     }
@@ -321,16 +321,14 @@ const Users: React.FC = () => {
                     <div className="text-sm text-gray-900">{user.position}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
                       {user.role === 'admin' ? t('users', 'admin') || 'Administrator' : t('users', 'worker') || 'Worker'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {user.active ? t('common', 'active') || 'Active' : t('common', 'inactive') || 'Inactive'}
                     </span>
                   </td>

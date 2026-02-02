@@ -14,15 +14,22 @@ router.get('/', authenticate, countryMiddleware, async (req: Request, res: Respo
   try {
     const userCountry = req.userCountry;
     const projects = await jsonStorage.getProjects(userCountry);
+
+    // Map _id to id for frontend compatibility
+    const projectsWithId = projects.map(p => ({
+      ...p,
+      id: p._id  // Add id field for frontend
+    }));
+
     res.status(200).json({
       success: true,
-      data: projects,
+      data: projectsWithId,
       count: projects.length
     });
   } catch (error: any) {
     console.error('Error fetching projects:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to fetch projects',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -38,52 +45,57 @@ router.get('/:id', authenticate, countryMiddleware, async (req: Request, res: Re
   try {
     const { id } = req.params;
     const userCountry = req.userCountry;
-    
+
     // الحصول على جميع المشاريع الخاصة بالدولة
     const projects = await jsonStorage.getProjects(userCountry);
     const project = projects.find(p => p._id === id);
-    
+
     if (!project) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'المشروع غير موجود أو غير متاح لهذه الدولة' 
+      return res.status(404).json({
+        success: false,
+        message: 'المشروع غير موجود أو غير متاح لهذه الدولة'
       });
     }
-    
+
     // الحصول على أقسام المشروع
     const sections = await jsonStorage.getSections(userCountry, id);
-    
+
     // الحصول على مصروفات المشروع
     const spendings = await jsonStorage.getSpendings(userCountry, id);
-    
+
     // حساب إجمالي المصروفات
     const totalSpent = spendings.reduce((sum, spending) => sum + (spending.amount || 0), 0);
-    
+
     // حساب متوسط التقدم من الأقسام
-    const avgProgress = sections.length > 0 
+    const avgProgress = sections.length > 0
       ? Math.round(sections.reduce((sum, section) => sum + (section.progress || 0), 0) / sections.length)
-      : project.progress || 0;
-    
+      : 0;
+
     // إعداد الاستجابة مع بيانات مفصلة
+    // Map sections and spendings to include id field
+    const sectionsWithId = sections.map(s => ({ ...s, id: s._id }));
+    const spendingsWithId = spendings.map(s => ({ ...s, id: s._id }));
+
     const projectDetails = {
       ...project,
-      sections,
-      spendings,
+      id: project._id,  // Add id field for frontend
+      sections: sectionsWithId,
+      spendings: spendingsWithId,
       totalSpent,
       remainingBudget: project.budget - totalSpent,
       actualProgress: avgProgress,
       sectionsCount: sections.length,
       spendingsCount: spendings.length
     };
-    
+
     res.status(200).json({
       success: true,
       data: projectDetails
     });
   } catch (error: any) {
     console.error('خطأ في جلب تفاصيل المشروع:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'خطأ في جلب تفاصيل المشروع',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -98,15 +110,15 @@ router.get('/:id', authenticate, countryMiddleware, async (req: Request, res: Re
 router.post('/', authenticate, countryMiddleware, isAdmin, async (req: Request, res: Response) => {
   try {
     const projectData = req.body;
-    
+
     // Validate required fields
     if (!projectData.name) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Project name is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Project name is required'
       });
     }
-    
+
     // Country is automatically added by countryMiddleware
     const newProject = await jsonStorage.createProject(projectData);
     res.status(201).json({
@@ -116,8 +128,8 @@ router.post('/', authenticate, countryMiddleware, isAdmin, async (req: Request, 
     });
   } catch (error: any) {
     console.error('Error creating project:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to create project',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -134,20 +146,20 @@ router.put('/:id', authenticate, countryMiddleware, isAdmin, async (req: Request
     const { id } = req.params;
     const updateData = req.body;
     const userCountry = req.userCountry;
-    
+
     // First, check if project exists and belongs to user's country
     const projects = await jsonStorage.getProjects(userCountry);
     const existingProject = projects.find(p => p._id === id);
-    
+
     if (!existingProject) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found in your branch' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found in your branch'
       });
     }
-    
+
     const updatedProject = await jsonStorage.updateProject(id, updateData);
-    
+
     res.status(200).json({
       success: true,
       data: updatedProject,
@@ -155,8 +167,8 @@ router.put('/:id', authenticate, countryMiddleware, isAdmin, async (req: Request
     });
   } catch (error: any) {
     console.error('Error updating project:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to update project',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -172,28 +184,28 @@ router.delete('/:id', authenticate, countryMiddleware, isAdmin, async (req: Requ
   try {
     const { id } = req.params;
     const userCountry = req.userCountry;
-    
+
     // First, check if project exists and belongs to user's country
     const projects = await jsonStorage.getProjects(userCountry);
     const existingProject = projects.find(p => p._id === id);
-    
+
     if (!existingProject) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found in your branch' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found in your branch'
       });
     }
-    
+
     const deleted = await jsonStorage.deleteProject(id);
-    
-    res.status(200).json({ 
-      success: true, 
-      message: 'Project deleted successfully' 
+
+    res.status(200).json({
+      success: true,
+      message: 'Project deleted successfully'
     });
   } catch (error: any) {
     console.error('Error deleting project:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to delete project',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });

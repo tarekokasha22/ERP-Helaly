@@ -27,16 +27,16 @@ import {
 } from '@heroicons/react/24/outline';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 // Register ChartJS components
 ChartJS.register(
-  ArcElement, 
-  Tooltip, 
-  Legend, 
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
   Title,
   PointElement,
   LineElement
@@ -129,13 +129,13 @@ type ChartOptions = {
 };
 
 // Circular Progress Component
-const CircularProgress: React.FC<{ percentage: number; size: number; strokeWidth: number; color: string; bgColor?: string; label?: string }> = ({ 
-  percentage, 
-  size, 
-  strokeWidth, 
-  color, 
-  bgColor = '#e5e7eb', 
-  label 
+const CircularProgress: React.FC<{ percentage: number; size: number; strokeWidth: number; color: string; bgColor?: string; label?: string }> = ({
+  percentage,
+  size,
+  strokeWidth,
+  color,
+  bgColor = '#e5e7eb',
+  label
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -183,10 +183,6 @@ const Dashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'1_month' | '3_months' | '6_months' | '1_year' | 'all_time'>('all_time');
   const [totalBudget, setTotalBudget] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  
-  // Force refresh projects data from localStorage
-  const [forceRefresh, setForceRefresh] = useState(0);
-  const [lastStorageCheck, setLastStorageCheck] = useState(Date.now());
 
   // Use mock API for development
   const {
@@ -194,7 +190,7 @@ const Dashboard: React.FC = () => {
     isLoading: isDataLoading,
     error: dataError
   } = useQuery(
-    ['dashboard', timeRange, forceRefresh],
+    ['dashboard', timeRange],
     async () => {
       if (USE_MOCK_API) {
         return await mockGetDashboardData(timeRange);
@@ -208,8 +204,10 @@ const Dashboard: React.FC = () => {
         console.error('Dashboard data error:', err);
         toast.error(err.message);
       },
-      staleTime: 30000, // Consider data fresh for 30 seconds
+      staleTime: 0, // CRITICAL: Always consider data stale for immediate updates
+      refetchInterval: 3000, // CRITICAL: Auto-refresh every 3 seconds
       refetchOnWindowFocus: true, // Refetch when window gains focus
+      refetchOnMount: 'always', // Always refetch on mount
       enabled: true, // Always enable the query
       retry: false, // Don't retry on failure
       placeholderData: {
@@ -232,9 +230,9 @@ const Dashboard: React.FC = () => {
     }
   );
 
-  // CRITICAL FIX: Fetch projects with better cache management
-  const { data: projects = [], isLoading: projectsLoading, dataUpdatedAt: projectsUpdatedAt } = useQuery(['projects', forceRefresh], async () => {
-    console.log('🔄 Dashboard: Fetching projects data... Force refresh:', forceRefresh);
+  // CRITICAL FIX: Fetch projects with better cache management - NO forceRefresh in key for consistent updates
+  const { data: projects = [], isLoading: projectsLoading, dataUpdatedAt: projectsUpdatedAt } = useQuery(['projects'], async () => {
+    console.log('🔄 Dashboard: Fetching projects data...');
     if (USE_MOCK_API) {
       const data = await mockGetProjects();
       console.log('📊 Dashboard: Received projects data:', data.length, 'projects');
@@ -242,19 +240,21 @@ const Dashboard: React.FC = () => {
       return data;
     } else {
       const res = await api.get('/projects');
+      console.log('📊 Dashboard: API returned projects:', res.data?.data?.length || 0);
       return res.data?.data || [];
     }
   }, {
-    staleTime: 1000, // CRITICAL: Reduce stale time to 1 second for faster updates
+    staleTime: 0, // CRITICAL: Always consider data stale for immediate updates
     cacheTime: 30000, // Keep cache for 30 seconds
+    refetchInterval: 3000, // CRITICAL: Auto-refresh every 3 seconds
     refetchOnWindowFocus: true, // Refetch when window gains focus
-    refetchOnMount: true, // Always refetch on mount
+    refetchOnMount: 'always', // Always refetch on mount
     enabled: true, // Always enable the query
     retry: false // Don't retry on failure
   });
 
-  const { data: sections = [], isLoading: sectionsLoading, dataUpdatedAt: sectionsUpdatedAt } = useQuery(['sections', forceRefresh], async () => {
-    console.log('🔄 Dashboard: Fetching sections data... Force refresh:', forceRefresh);
+  const { data: sections = [], isLoading: sectionsLoading, dataUpdatedAt: sectionsUpdatedAt } = useQuery(['sections'], async () => {
+    console.log('🔄 Dashboard: Fetching sections data...');
     if (USE_MOCK_API) {
       const data = await mockGetSections();
       console.log('📊 Dashboard: Received sections data:', data.length, 'sections');
@@ -264,16 +264,17 @@ const Dashboard: React.FC = () => {
       return res.data?.data || [];
     }
   }, {
-    staleTime: 1000, // CRITICAL: Reduce stale time to 1 second for faster updates
+    staleTime: 0, // CRITICAL: Always consider data stale
     cacheTime: 30000, // Keep cache for 30 seconds
+    refetchInterval: 3000, // CRITICAL: Auto-refresh every 3 seconds
     refetchOnWindowFocus: true,
-    refetchOnMount: true, // Always refetch on mount
+    refetchOnMount: 'always', // Always refetch on mount
     enabled: true, // Always enable the query
     retry: false // Don't retry on failure
   });
 
-  const { data: spendings = [], isLoading: spendingsLoading, dataUpdatedAt: spendingsUpdatedAt } = useQuery(['spendings', forceRefresh], async () => {
-    console.log('🔄 Dashboard: Fetching spendings data... Force refresh:', forceRefresh);
+  const { data: spendings = [], isLoading: spendingsLoading, dataUpdatedAt: spendingsUpdatedAt } = useQuery(['spendings'], async () => {
+    console.log('🔄 Dashboard: Fetching spendings data...');
     if (USE_MOCK_API) {
       const data = await mockGetSpendings();
       console.log('📊 Dashboard: Received spendings data:', data.length, 'spendings');
@@ -283,10 +284,11 @@ const Dashboard: React.FC = () => {
       return res.data?.data || [];
     }
   }, {
-    staleTime: 1000, // CRITICAL: Reduce stale time to 1 second for faster updates
+    staleTime: 0, // CRITICAL: Always consider data stale
     cacheTime: 30000, // Keep cache for 30 seconds
+    refetchInterval: 3000, // CRITICAL: Auto-refresh every 3 seconds
     refetchOnWindowFocus: true,
-    refetchOnMount: true, // Always refetch on mount
+    refetchOnMount: 'always', // Always refetch on mount
     enabled: true, // Always enable the query
     retry: false // Don't retry on failure
   });
@@ -294,99 +296,18 @@ const Dashboard: React.FC = () => {
   // Calculate total budget from all projects and sections
   useEffect(() => {
     if (projects.length > 0 || sections.length > 0) {
-      const projectsBudget = projects.reduce((sum, project) => sum + (project.budget || 0), 0);
-      const sectionsBudget = sections.reduce((sum, section) => sum + (section.budget || 0), 0);
+      const projectsBudget = projects.reduce((sum: any, project: any) => sum + (project.budget || 0), 0);
+      const sectionsBudget = sections.reduce((sum: any, section: any) => sum + (section.budget || 0), 0);
       setTotalBudget(projectsBudget + sectionsBudget);
     }
   }, [projects, sections]);
 
-  // CRITICAL FIX: Enhanced event-driven refresh system for instant updates
-  const handleDataRefresh = () => {
-    console.log('🔄 Dashboard refresh triggered via event...');
-    
-    // Force increment the refresh counter
-    setForceRefresh(prev => {
-      const newValue = prev + 1;
-      console.log('🔄 Force refresh incremented:', newValue);
-      return newValue;
-    });
-    
-    // Update timestamp
-    setLastUpdated(new Date());
-    
-    // CRITICAL: Immediately invalidate React Query cache to force fresh data
-    queryClient.invalidateQueries(['projects']);
-    queryClient.invalidateQueries(['sections']);
-    queryClient.invalidateQueries(['spendings']);
-    queryClient.invalidateQueries(['dashboard']);
-    
-    console.log('✅ Dashboard refresh completed with cache invalidation!');
-  };
-
-  // Simplified event-driven refresh system
+  // Real-time update handling via React Query
+  // We rely on the refetchInterval (3s) configured in useQuery above
+  // This keeps the dashboard in sync without manual event listeners that cause race conditions
   useEffect(() => {
-    // Listen for custom events when new data is added, deleted, or modified
-    window.addEventListener('projectAdded', handleDataRefresh);
-    window.addEventListener('projectDeleted', handleDataRefresh);
-    window.addEventListener('projectUpdated', handleDataRefresh);
-    window.addEventListener('sectionAdded', handleDataRefresh);
-    window.addEventListener('sectionDeleted', handleDataRefresh);
-    window.addEventListener('sectionUpdated', handleDataRefresh);
-    window.addEventListener('spendingAdded', handleDataRefresh);
-    window.addEventListener('spendingDeleted', handleDataRefresh);
-    window.addEventListener('spendingUpdated', handleDataRefresh);
-    window.addEventListener('inventoryAdded', handleDataRefresh);
-    window.addEventListener('userAdded', handleDataRefresh);
-
-    // CRITICAL FIX: Listen for localStorage changes (custom events from saveToStorage)
-    const handleStorageChange = () => {
-      console.log('💾 Dashboard: localStorage change detected');
-      handleDataRefresh();
-    };
-
-    const handleProjectDataChange = () => {
-      console.log('🏗️ Dashboard: Project data changed in localStorage');
-      handleDataRefresh();
-    };
-
-    const handleSectionDataChange = () => {
-      console.log('📋 Dashboard: Section data changed in localStorage');
-      handleDataRefresh();
-    };
-
-    const handleSpendingDataChange = () => {
-      console.log('💰 Dashboard: Spending data changed in localStorage');
-      handleDataRefresh();
-    };
-
-    window.addEventListener('localStorageChanged', handleStorageChange);
-    window.addEventListener('projectDataChanged', handleProjectDataChange);
-    window.addEventListener('sectionDataChanged', handleSectionDataChange);
-    window.addEventListener('spendingDataChanged', handleSpendingDataChange);
-
-    // Initial refresh on mount
-    handleDataRefresh();
-
-    return () => {
-      window.removeEventListener('projectAdded', handleDataRefresh);
-      window.removeEventListener('projectDeleted', handleDataRefresh);
-      window.removeEventListener('projectUpdated', handleDataRefresh);
-      window.removeEventListener('sectionAdded', handleDataRefresh);
-      window.removeEventListener('sectionDeleted', handleDataRefresh);
-      window.removeEventListener('sectionUpdated', handleDataRefresh);
-      window.removeEventListener('spendingAdded', handleDataRefresh);
-      window.removeEventListener('spendingDeleted', handleDataRefresh);
-      window.removeEventListener('spendingUpdated', handleDataRefresh);
-      window.removeEventListener('inventoryAdded', handleDataRefresh);
-      window.removeEventListener('userAdded', handleDataRefresh);
-      
-      // CRITICAL FIX: Remove new storage change listeners
-      window.removeEventListener('localStorageChanged', handleStorageChange);
-      window.removeEventListener('projectDataChanged', handleProjectDataChange);
-      window.removeEventListener('sectionDataChanged', handleSectionDataChange);
-      window.removeEventListener('spendingDataChanged', handleSpendingDataChange);
-    };
-  }, []);
+    setLastUpdated(new Date());
+  }, [projectsUpdatedAt, sectionsUpdatedAt, spendingsUpdatedAt]);
 
   // Get filtered data based on time range
   const getFilteredData = () => {
@@ -407,28 +328,31 @@ const Dashboard: React.FC = () => {
         startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1);
         break;
       case 'all_time':
-        startDate = new Date(2020, 0, 1); // Start from 2020 or any early date
+        startDate = new Date(1900, 0, 1); // Start from 1900 to include all projects
         break;
       default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    const endDate = timeRange === 'all_time' ? new Date() : new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const endDate = timeRange === 'all_time'
+      ? new Date(new Date().getFullYear() + 10, 11, 31) // Include future projects (up to 10 years ahead)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     // Filter projects based on time range
     const filteredProjects = projects.filter(p => {
       const projectStartDate = new Date(p.startDate || p.createdAt);
-      const projectEndDate = p.endDate ? new Date(p.endDate) : new Date(); 
+      // For filtering purposes, if no end date, assume it's ongoing (use view end date)
+      const projectEndDate = p.endDate ? new Date(p.endDate) : endDate;
       const isInRange = (projectStartDate <= endDate && projectEndDate >= startDate);
-      
+
       // Debug filtering
       if (!isInRange) {
         console.log('📊 Dashboard: Project filtered out:', p.name, 'Start:', projectStartDate, 'End:', projectEndDate, 'Range:', startDate, 'to', endDate);
       }
-      
+
       return isInRange;
     });
-    
+
     console.log('📊 Dashboard: Time range filtering - Original projects:', projects.length, 'Filtered projects:', filteredProjects.length, 'Time range:', timeRange);
 
     // Filter spendings based on time range
@@ -456,51 +380,51 @@ const Dashboard: React.FC = () => {
   const generateProgressTimelineData = () => {
     const filteredData = getFilteredData();
     const { startDate, endDate } = filteredData;
-    
+
     // Create time period labels based on time range
     const labels = [];
     const dataPoints = [];
-    
+
     if (timeRange === 'all_time') {
       // For all time, show yearly data
       const startYear = startDate.getFullYear();
       const endYear = endDate.getFullYear();
-      
+
       for (let year = startYear; year <= endYear; year++) {
         labels.push(year.toString());
-        
+
         const yearProjects = filteredData.projects.filter(p => {
           const projectDate = new Date(p.startDate || p.createdAt);
           return projectDate.getFullYear() === year;
         });
-        
-        const avgProgress = yearProjects.length > 0 
+
+        const avgProgress = yearProjects.length > 0
           ? yearProjects.reduce((sum, p) => sum + p.progress, 0) / yearProjects.length
           : 0;
-        
+
         dataPoints.push(Math.round(avgProgress));
       }
     } else {
       // For other ranges, show monthly data
       const currentDate = new Date(startDate);
-      
+
       while (currentDate <= endDate) {
         const monthLabel = currentDate.toLocaleDateString('ar-EG', { month: 'short', year: 'numeric' });
         labels.push(monthLabel);
-        
+
         // Calculate average progress for projects in this month
         const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-        
+
         const monthProjects = filteredData.projects.filter(p => {
           const projectDate = new Date(p.startDate || p.createdAt);
           return projectDate >= monthStart && projectDate <= monthEnd;
         });
-        
-        const avgProgress = monthProjects.length > 0 
+
+        const avgProgress = monthProjects.length > 0
           ? monthProjects.reduce((sum, p) => sum + p.progress, 0) / monthProjects.length
           : 0;
-        
+
         dataPoints.push(Math.round(avgProgress));
         currentDate.setMonth(currentDate.getMonth() + 1);
       }
@@ -513,28 +437,28 @@ const Dashboard: React.FC = () => {
   const calculateRealDashboardData = () => {
     console.log('🧮 Dashboard: Calculating real dashboard data...');
     console.log('📊 Dashboard: Raw data - Projects:', projects.length, 'Sections:', sections.length, 'Spendings:', spendings.length);
-    
+
     const filteredData = getFilteredData();
     console.log('📊 Dashboard: Filtered data - Projects:', filteredData.projects.length, 'Sections:', filteredData.sections.length, 'Spendings:', filteredData.spendings.length);
-    
+
     const totalProjects = filteredData.projects.length;
     const activeProjects = filteredData.projects.filter(p => p.status === 'in_progress' || p.status === 'active').length;
     const completedProjects = filteredData.projects.filter(p => p.status === 'completed').length;
     const notStartedProjects = filteredData.projects.filter(p => p.status === 'not_started' || p.status === 'pending').length;
-    
+
     // Debug project statuses
     const projectStatusDebug = filteredData.projects.map(p => ({ name: p.name, status: p.status }));
     console.log('📊 Dashboard: Project statuses breakdown:', projectStatusDebug);
     console.log('📊 Dashboard: Status counts - Total:', totalProjects, 'Active:', activeProjects, 'Completed:', completedProjects, 'Not Started:', notStartedProjects);
-    
+
     const totalSpending = filteredData.spendings.reduce((sum, s) => sum + (s.amount || 0), 0);
     const projectsBudget = filteredData.projects.reduce((sum, p) => sum + (p.budget || 0), 0);
     const sectionsBudget = filteredData.sections.reduce((sum, s) => sum + (s.budget || 0), 0);
     const totalBudget = projectsBudget + sectionsBudget;
     const totalRemaining = totalBudget - totalSpending;
-    
+
     console.log('📊 Dashboard: Calculated stats - Total:', totalProjects, 'Active:', activeProjects, 'Completed:', completedProjects, 'Budget:', totalBudget, 'Spending:', totalSpending);
-    
+
     return {
       projectStats: {
         total: totalProjects,
@@ -555,20 +479,20 @@ const Dashboard: React.FC = () => {
   };
 
   const realDashboardData = calculateRealDashboardData();
-  
+
   // Debug: Log when dashboard data changes
   console.log('🎯 Dashboard: Displaying stats - Total projects:', realDashboardData.projectStats.total, 'Active:', realDashboardData.projectStats.active, 'Completed:', realDashboardData.projectStats.completed, 'Not Started:', realDashboardData.projectStats.notStarted, 'Updated at:', new Date().toLocaleTimeString());
 
 
 
   // Calculate completion percentage
-  const completionPercentage = realDashboardData.projectStats.total > 0 
-    ? (realDashboardData.projectStats.completed / realDashboardData.projectStats.total) * 100 
+  const completionPercentage = realDashboardData.projectStats.total > 0
+    ? (realDashboardData.projectStats.completed / realDashboardData.projectStats.total) * 100
     : 0;
 
   // Calculate budget utilization percentage
-  const budgetUtilization = totalBudget > 0 
-    ? (realDashboardData.financialStats.totalSpending / totalBudget) * 100 
+  const budgetUtilization = totalBudget > 0
+    ? (realDashboardData.financialStats.totalSpending / totalBudget) * 100
     : 0;
 
   // Project status chart data using real data
@@ -657,7 +581,7 @@ const Dashboard: React.FC = () => {
 
 
   // Extract data for the view
-  
+
 
   if (isDataLoading) {
     return (
@@ -837,7 +761,7 @@ const Dashboard: React.FC = () => {
 
       {/* Advanced Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        
+
         {/* Project Completion Circle */}
         <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-4 lg:p-6">
           <div className="flex items-center justify-between mb-4">
@@ -845,11 +769,11 @@ const Dashboard: React.FC = () => {
             <ChartBarIcon className="h-5 w-5 text-gray-400" />
           </div>
           <div className="flex items-center justify-center">
-            <CircularProgress 
-              percentage={completionPercentage} 
-              size={120} 
-              strokeWidth={8} 
-              color="#10B981" 
+            <CircularProgress
+              percentage={completionPercentage}
+              size={120}
+              strokeWidth={8}
+              color="#10B981"
               label="مكتمل"
             />
           </div>
@@ -876,10 +800,10 @@ const Dashboard: React.FC = () => {
             <ArrowTrendingUpIcon className="h-5 w-5 text-gray-400" />
           </div>
           <div className="flex items-center justify-center">
-            <CircularProgress 
-              percentage={budgetUtilization} 
-              size={120} 
-              strokeWidth={8} 
+            <CircularProgress
+              percentage={budgetUtilization}
+              size={120}
+              strokeWidth={8}
               color={budgetUtilization > 80 ? "#EF4444" : budgetUtilization > 60 ? "#F59E0B" : "#10B981"}
               label="مستخدم"
             />
@@ -890,10 +814,9 @@ const Dashboard: React.FC = () => {
               <span className="font-medium">{formatMoney(totalBudget - realDashboardData.financialStats.totalSpending)}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  budgetUtilization > 80 ? 'bg-red-500' : budgetUtilization > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                }`}
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${budgetUtilization > 80 ? 'bg-red-500' : budgetUtilization > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                  }`}
                 style={{ width: `${Math.min(budgetUtilization, 100)}%` }}
               ></div>
             </div>

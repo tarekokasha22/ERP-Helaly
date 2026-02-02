@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API for development
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type Section = {
   id: string;
@@ -38,14 +38,14 @@ const SectionEdit: React.FC = () => {
   const { t, language } = useLanguage();
   const { formatMoney } = useCurrency();
   const queryClient = useQueryClient();
-  
+
   // CRITICAL FIX: Add centralized state management for dashboard updates
   const { sectionOperations, debugLog, healthCheck } = useDashboardState({
     enableDebugging: true,
     enableOptimisticUpdates: true,
     refetchDelay: 0 // Immediate updates for professional UX
   });
-  
+
   const isAdmin = user?.role === 'admin';
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,7 +55,6 @@ const SectionEdit: React.FC = () => {
     status: 'not_started',
     manager: '',
     budget: 0,
-    employees: 0,
     details: '',
     notes: '',
     projectId: '',
@@ -68,13 +67,14 @@ const SectionEdit: React.FC = () => {
     ['section', id],
     async () => {
       if (!id) throw new Error('Section ID is required');
-      
+
       try {
         if (USE_MOCK_API) {
           return await mockGetSectionById(id);
         } else {
           const res = await api.get(`/sections/${id}`);
-          return res.data;
+          // Backend returns { success: true, data: { ...section } }
+          return res.data.data || res.data;
         }
       } catch (error) {
         console.error('Error fetching section:', error);
@@ -104,7 +104,7 @@ const SectionEdit: React.FC = () => {
   const updateSectionMutation = useMutation(
     async (sectionData: Partial<Section>) => {
       if (!id) throw new Error('Section ID is required');
-      
+
       if (USE_MOCK_API) {
         return await mockUpdateSection(id, sectionData);
       } else {
@@ -115,13 +115,13 @@ const SectionEdit: React.FC = () => {
     {
       onSuccess: async (updatedSection) => {
         debugLog('🔧 Section update success - executing professional state management...');
-        
+
         // CRITICAL FIX: Use centralized state management instead of manual cache invalidation
         await sectionOperations.onUpdate(updatedSection);
-        
+
         // Verify system health
         healthCheck();
-        
+
         // Professional user feedback
         const newProgress = updatedSection.progress || 0;
         toast.success(`✅ تم تحديث القسم بنجاح! التقدم الجديد: ${newProgress}%`);
@@ -168,56 +168,53 @@ const SectionEdit: React.FC = () => {
     const { name, value } = e.target;
     setSectionData(prev => ({
       ...prev,
-      [name]: ['budget', 'employees', 'targetQuantity', 'completedQuantity'].includes(name) 
-        ? parseFloat(value) || 0 
+      [name]: ['budget', 'targetQuantity', 'completedQuantity'].includes(name)
+        ? parseFloat(value) || 0
         : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (sectionData.name?.trim() === '') {
       toast.error(t('validation', 'nameRequired') || 'Section name is required');
       return;
     }
-    
+
     if (sectionData.manager?.trim() === '') {
       toast.error(t('validation', 'managerRequired') || 'Manager name is required');
     }
-    
+
     if (sectionData.budget !== undefined && sectionData.budget <= 0) {
       toast.error(t('validation', 'budgetMustBePositive') || 'Budget must be a positive number');
       return;
     }
-    
+
     if (sectionData.targetQuantity !== undefined && sectionData.targetQuantity <= 0) {
       toast.error(t('validation', 'targetQuantityRequired') || 'Target quantity must be greater than zero');
       return;
     }
-    
+
     if (sectionData.completedQuantity !== undefined && sectionData.completedQuantity < 0) {
       toast.error(t('validation', 'completedQuantityValid') || 'Completed quantity cannot be negative');
       return;
     }
-    
-    if (sectionData.completedQuantity !== undefined && sectionData.targetQuantity !== undefined && 
-        sectionData.completedQuantity > sectionData.targetQuantity) {
+
+    if (sectionData.completedQuantity !== undefined && sectionData.targetQuantity !== undefined &&
+      sectionData.completedQuantity > sectionData.targetQuantity) {
       toast.error(t('validation', 'completedCannotExceedTarget') || 'Completed quantity cannot exceed target quantity');
       return;
     }
-    
-    if (sectionData.employees !== undefined && sectionData.employees < 0) {
-      toast.error(t('validation', 'employeesValid') || 'Number of employees cannot be negative');
-      return;
-    }
-    
+
+
+
     // Calculate progress
-    const progress = sectionData.targetQuantity && sectionData.targetQuantity > 0 
-      ? Math.round(((sectionData.completedQuantity || 0) / sectionData.targetQuantity) * 100) 
+    const progress = sectionData.targetQuantity && sectionData.targetQuantity > 0
+      ? Math.round(((sectionData.completedQuantity || 0) / sectionData.targetQuantity) * 100)
       : 0;
-    
+
     setIsSubmitting(true);
     updateSectionMutation.mutate({
       ...sectionData,
@@ -233,7 +230,7 @@ const SectionEdit: React.FC = () => {
     return (
       <div className="text-center py-12">
         <p className="text-xl text-gray-500">{t('sections', 'notFound') || 'Section not found'}</p>
-        <Link 
+        <Link
           to="/sections"
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
         >
@@ -279,7 +276,7 @@ const SectionEdit: React.FC = () => {
                 className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            
+
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                 {t('projects', 'description') || 'الوصف'}
@@ -293,7 +290,7 @@ const SectionEdit: React.FC = () => {
                 className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            
+
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-3">
               <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700">
@@ -311,7 +308,7 @@ const SectionEdit: React.FC = () => {
                   <option value="completed">{t('projects', 'completed') || 'مكتمل'}</option>
                 </select>
               </div>
-              
+
               <div>
                 <label htmlFor="manager" className="block text-sm font-medium text-gray-700">
                   {t('sections', 'manager') || 'مدير القسم'}
@@ -326,7 +323,7 @@ const SectionEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="projectId" className="block text-sm font-medium text-gray-700">
                   {t('sections', 'project') || 'المشروع'}
@@ -347,7 +344,7 @@ const SectionEdit: React.FC = () => {
                 </select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="budget" className="block text-sm font-medium text-gray-700">
@@ -365,23 +362,8 @@ const SectionEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
-              
-              <div>
-                <label htmlFor="employees" className="block text-sm font-medium text-gray-700">
-                  👥 {t('sections', 'employees') || 'عدد الموظفين'}
-                </label>
-                <input
-                  type="number"
-                  name="employees"
-                  id="employees"
-                  min="0"
-                  value={sectionData.employees}
-                  onChange={handleInputChange}
-                  className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                />
-              </div>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="targetQuantity" className="block text-sm font-medium text-gray-700">
@@ -399,7 +381,7 @@ const SectionEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="completedQuantity" className="block text-sm font-medium text-gray-700">
                   {t('projects', 'completedQuantity') || 'الكمية المنجزة'} (كم)
@@ -415,13 +397,13 @@ const SectionEdit: React.FC = () => {
                   className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  التقدم الحالي: {sectionData.targetQuantity && sectionData.targetQuantity > 0 
-                    ? Math.round(((sectionData.completedQuantity || 0) / sectionData.targetQuantity) * 100) 
+                  التقدم الحالي: {sectionData.targetQuantity && sectionData.targetQuantity > 0
+                    ? Math.round(((sectionData.completedQuantity || 0) / sectionData.targetQuantity) * 100)
                     : 0}%
                 </p>
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="details" className="block text-sm font-medium text-gray-700">
                 {t('sections', 'details') || 'التفاصيل'}
@@ -435,7 +417,7 @@ const SectionEdit: React.FC = () => {
                 className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            
+
             <div>
               <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
                 {t('sections', 'notes') || 'الملاحظات'}
@@ -450,7 +432,7 @@ const SectionEdit: React.FC = () => {
                 className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3">
               <Link
                 to={`/sections/${id}`}

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ArrowLeftIcon, 
+import {
+  ArrowLeftIcon,
   PencilIcon,
   TrashIcon,
   UserIcon,
@@ -18,7 +18,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 type Section = {
   id: string;
@@ -45,34 +45,51 @@ const SectionDetails: React.FC = () => {
   const { t, language } = useLanguage();
   const { formatMoney } = useCurrency();
   const queryClient = useQueryClient();
-  
+
   // CRITICAL FIX: Add centralized state management for dashboard updates
   const { sectionOperations, debugLog, healthCheck } = useDashboardState({
     enableDebugging: true,
     enableOptimisticUpdates: false,
     refetchDelay: 0
   });
-  
+
   const isAdmin = user?.role === 'admin';
   const [editMode, setEditMode] = useState(false);
   const [targetQuantity, setTargetQuantity] = useState(0);
   const [completedQuantity, setCompletedQuantity] = useState(0);
   const [status, setStatus] = useState<Section['status']>('not_started');
   const [notes, setNotes] = useState('');
-  const [employees, setEmployees] = useState(0);
 
 
   // Fetch section data
   const { data: section, isLoading, refetch } = useQuery(['section', id], async () => {
     if (!id) throw new Error('Section ID is required');
-    
+
     if (USE_MOCK_API) {
       return await mockGetSectionById(id);
     } else {
       const res = await api.get(`/sections/${id}`);
-      return res.data;
+      // Backend returns { success: true, data: { ...section } }
+      return res.data.data || res.data;
     }
   });
+
+  // Fetch employees for this section to calculate actual count
+  const { data: sectionEmployees = [] } = useQuery(
+    ['section-employees', id, user?.country],
+    async () => {
+      if (!user?.country || !id) return [];
+      const res = await api.get(`/employees/${user.country}`);
+      const allEmployees = res.data?.data || [];
+      return allEmployees.filter((emp: any) => emp.sectionId === id);
+    },
+    {
+      enabled: !!user?.country && !!id,
+      refetchInterval: 5000 // Refresh every 5 seconds to stay in sync
+    }
+  );
+
+  const actualEmployeeCount = sectionEmployees.length;
 
   React.useEffect(() => {
     if (section) {
@@ -80,7 +97,6 @@ const SectionDetails: React.FC = () => {
       setCompletedQuantity(section.completedQuantity || 0);
       setStatus(section.status);
       setNotes(section.notes || '');
-      setEmployees(section.employees || 0);
     }
   }, [section]);
 
@@ -114,7 +130,7 @@ const SectionDetails: React.FC = () => {
   const updateSectionMutation = useMutation(
     async (updateData: any) => {
       if (!id) throw new Error('Section ID is required');
-      
+
       if (USE_MOCK_API) {
         return await mockUpdateSection(id, updateData);
       } else {
@@ -125,21 +141,21 @@ const SectionDetails: React.FC = () => {
     {
       onSuccess: async (updatedSection) => {
         debugLog('🔧 Section update success - executing professional state management...');
-        
+
         // Execute centralized state management
         await sectionOperations.onUpdate(updatedSection);
-        
+
         // Invalidate related queries
         queryClient.invalidateQueries(['section', id]);
         queryClient.invalidateQueries(['sections']);
         queryClient.invalidateQueries(['dashboard']);
-        
+
         // Verify system health
         healthCheck();
-        
+
         // Refetch current section data
         refetch();
-        
+
         // Success feedback
         const newProgress = updatedSection.progress || 0;
         toast.success(`✅ تم تحديث القسم بنجاح! التقدم الجديد: ${newProgress}%`);
@@ -159,7 +175,7 @@ const SectionDetails: React.FC = () => {
         toast.error('⚠️ الكمية المستهدفة يجب أن تكون أكبر من صفر');
         return;
       }
-      
+
       if (completedQuantity < 0) {
         toast.error('⚠️ الكمية المنجزة لا يمكن أن تكون قيمة سالبة');
         return;
@@ -170,27 +186,23 @@ const SectionDetails: React.FC = () => {
         return;
       }
 
-      if (employees < 0) {
-        toast.error('⚠️ عدد الموظفين لا يمكن أن يكون قيمة سالبة');
-        return;
-      }
+
 
       // Calculate progress
       const progress = targetQuantity > 0 ? Math.round((completedQuantity / targetQuantity) * 100) : 0;
 
-      // Prepare update data
+      // Prepare update data (employees count is now read-only, calculated from actual employees)
       const updateData = {
         targetQuantity,
         completedQuantity,
         status,
         notes,
-        employees,
         progress
       };
 
       debugLog('📝 Updating section with data:', updateData);
       updateSectionMutation.mutate(updateData);
-      
+
     } catch (error) {
       console.error('❌ Section update preparation failed:', error);
       toast.error('❌ خطأ في إعداد البيانات للتحديث');
@@ -315,19 +327,18 @@ const SectionDetails: React.FC = () => {
               <dt className="text-sm font-medium text-gray-500">
                 👥 {t('sections', 'employees') || 'عدد الموظفين'}
               </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {!editMode ? (
-                  <span>{section.employees || 0} موظف</span>
-                ) : (
-                  <input
-                    type="number"
-                    min="0"
-                    value={employees}
-                    onChange={(e) => setEmployees(parseInt(e.target.value) || 0)}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="عدد الموظفين"
-                  />
-                )}
+              <dd className="mt-1 text-sm sm:mt-0 sm:col-span-2">
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-bold text-blue-600">
+                      {actualEmployeeCount}
+                    </span>
+                    <span className="text-sm text-gray-600">موظف</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    يتم الحساب تلقائياً من صفحة العاملين
+                  </p>
+                </div>
               </dd>
             </div>
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

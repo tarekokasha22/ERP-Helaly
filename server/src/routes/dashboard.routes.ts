@@ -22,7 +22,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
     // Calculate project statistics
     const projectStats = {
       total: projects.length,
-      active: projects.filter(p => p.status === 'in-progress').length,
+      active: projects.filter(p => p.status === 'in_progress').length,
       completed: projects.filter(p => p.status === 'completed').length,
       notStarted: projects.filter(p => p.status === 'planning').length,
       percentChange: 0 // This would be calculated based on historical data
