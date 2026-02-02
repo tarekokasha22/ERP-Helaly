@@ -1,12 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import mongoose from 'mongoose';
-import ProjectModel from '../models/project.model';
-import SectionModel from '../models/section.model';
-import SpendingModel from '../models/spending.model';
-import UserModel from '../models/user.model';
-import EmployeeModel from '../models/employee.model';
-import PaymentModel from '../models/payment.model';
+
 
 export interface Project {
   _id: string;
@@ -120,9 +114,7 @@ class JSONStorage {
     this.loadData();
   }
 
-  private get useMongo(): boolean {
-    return mongoose.connection.readyState === 1;
-  }
+
 
   private ensureDataDir() {
     if (!fs.existsSync(this.dataDir)) {
@@ -228,15 +220,6 @@ class JSONStorage {
 
   // Projects methods
   async getProjects(country?: string): Promise<Project[]> {
-    if (this.useMongo) {
-      const query: any = {};
-      if (country && (country === 'egypt' || country === 'libya')) {
-        query.country = country;
-      }
-      const projects = await ProjectModel.find(query).lean();
-      return projects.map(p => ({ ...p, _id: p._id.toString() } as any));
-    }
-
     if (country && (country === 'egypt' || country === 'libya')) {
       return this.projects[country] || [];
     }
@@ -252,20 +235,6 @@ class JSONStorage {
       updatedAt: new Date().toISOString()
     };
 
-    if (this.useMongo) {
-      await ProjectModel.create({
-        ...projectData,
-        _id: project._id,
-        // Make sure optional fields are handled if missing
-        location: (projectData as any).location || 'Not Specified',
-        clientName: (projectData as any).clientName || 'General Client',
-        clientEmail: (projectData as any).clientEmail || 'client@example.com',
-        clientPhone: (projectData as any).clientPhone || '0000000000',
-        createdBy: (projectData as any).createdBy || 'admin',
-      });
-      return project;
-    }
-
     const country = projectData.country;
     if (country === 'egypt' || country === 'libya') {
       this.projects[country].push(project);
@@ -275,15 +244,6 @@ class JSONStorage {
   }
 
   async updateProject(id: string, updateData: Partial<Project>, country?: string): Promise<Project | null> {
-    if (this.useMongo) {
-      const updated = await ProjectModel.findByIdAndUpdate(
-        id,
-        { $set: updateData },
-        { new: true }
-      ).lean();
-      return updated ? ({ ...updated, _id: updated._id.toString() } as any) : null;
-    }
-
     const targetCountry = country || updateData.country;
 
     for (const c of ['egypt', 'libya'] as const) {
@@ -304,11 +264,6 @@ class JSONStorage {
   }
 
   async deleteProject(id: string, country?: string): Promise<boolean> {
-    if (this.useMongo) {
-      const result = await ProjectModel.findByIdAndDelete(id);
-      return !!result;
-    }
-
     for (const c of ['egypt', 'libya'] as const) {
       if (country && c !== country) continue;
 
@@ -324,18 +279,6 @@ class JSONStorage {
 
   // Sections methods
   async getSections(country?: string, projectId?: string): Promise<Section[]> {
-    if (this.useMongo) {
-      const query: any = {};
-      if (country && (country === 'egypt' || country === 'libya')) {
-        query.country = country;
-      }
-      if (projectId) {
-        query.projectId = projectId;
-      }
-      const sections = await SectionModel.find(query).lean();
-      return sections.map(s => ({ ...s, _id: s._id.toString() } as any));
-    }
-
     let result: Section[] = [];
 
     if (country && (country === 'egypt' || country === 'libya')) {
@@ -359,15 +302,6 @@ class JSONStorage {
       updatedAt: new Date().toISOString()
     };
 
-    if (this.useMongo) {
-      await SectionModel.create({
-        ...sectionData,
-        _id: section._id,
-        createdBy: (sectionData as any).createdBy || 'admin',
-      });
-      return section;
-    }
-
     const country = sectionData.country;
     if (country === 'egypt' || country === 'libya') {
       this.sections[country].push(section);
@@ -377,15 +311,6 @@ class JSONStorage {
   }
 
   async updateSection(id: string, updateData: Partial<Section>, country?: string): Promise<Section | null> {
-    if (this.useMongo) {
-      const updated = await SectionModel.findByIdAndUpdate(
-        id,
-        { $set: updateData },
-        { new: true }
-      ).lean();
-      return updated ? ({ ...updated, _id: updated._id.toString() } as any) : null;
-    }
-
     const targetCountry = country || updateData.country;
 
     for (const c of ['egypt', 'libya'] as const) {
@@ -406,11 +331,6 @@ class JSONStorage {
   }
 
   async deleteSection(id: string, country?: string): Promise<boolean> {
-    if (this.useMongo) {
-      const result = await SectionModel.findByIdAndDelete(id);
-      return !!result;
-    }
-
     for (const c of ['egypt', 'libya'] as const) {
       if (country && c !== country) continue;
 
@@ -426,18 +346,6 @@ class JSONStorage {
 
   // Spendings methods
   async getSpendings(country?: string, projectId?: string): Promise<Spending[]> {
-    if (this.useMongo) {
-      const query: any = {};
-      if (country && (country === 'egypt' || country === 'libya')) {
-        query.country = country;
-      }
-      if (projectId) {
-        query.projectId = projectId;
-      }
-      const spendings = await SpendingModel.find(query).lean();
-      return spendings.map(s => ({ ...s, _id: s._id.toString() } as any));
-    }
-
     let filtered = this.spendings;
 
     if (country) {
@@ -459,31 +367,12 @@ class JSONStorage {
       updatedAt: new Date().toISOString()
     };
 
-    if (this.useMongo) {
-      await SpendingModel.create({
-        ...spendingData,
-        _id: spending._id,
-        approvedBy: (spendingData as any).approvedBy || 'admin',
-        createdBy: (spendingData as any).createdBy || 'admin',
-      });
-      return spending;
-    }
-
     this.spendings.push(spending);
     this.saveToFile('spendings.json', this.spendings);
     return spending;
   }
 
   async updateSpending(id: string, updateData: Partial<Spending>): Promise<Spending | null> {
-    if (this.useMongo) {
-      const updated = await SpendingModel.findByIdAndUpdate(
-        id,
-        { $set: updateData },
-        { new: true }
-      ).lean();
-      return updated ? ({ ...updated, _id: updated._id.toString() } as any) : null;
-    }
-
     const index = this.spendings.findIndex(s => s._id === id);
     if (index === -1) return null;
 
@@ -498,11 +387,6 @@ class JSONStorage {
   }
 
   async deleteSpending(id: string): Promise<boolean> {
-    if (this.useMongo) {
-      const result = await SpendingModel.findByIdAndDelete(id);
-      return !!result;
-    }
-
     const index = this.spendings.findIndex(s => s._id === id);
     if (index === -1) return false;
 
@@ -513,15 +397,6 @@ class JSONStorage {
 
   // Users methods
   async getUsers(country?: string): Promise<User[]> {
-    if (this.useMongo) {
-      const query: any = {};
-      if (country && (country === 'egypt' || country === 'libya')) {
-        query.country = country;
-      }
-      const users = await UserModel.find(query).lean();
-      return users.map(u => ({ ...u, _id: u._id.toString() } as any));
-    }
-
     if (country) {
       return this.users.filter(u => u.country === country);
     }
@@ -529,19 +404,10 @@ class JSONStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    if (this.useMongo) {
-      const user = await UserModel.findOne({ email }).lean();
-      return user ? ({ ...user, _id: user._id.toString() } as any) : null;
-    }
-
     return this.users.find(u => u.email === email) || null;
   }
 
   async getUserByUsername(username: string, country?: string): Promise<User | null> {
-    if (this.useMongo) {
-      return null; // Placeholder as original implementation used "username" which might be "name"
-    }
-
     if (country) {
       return this.users.find(u => u.username === username && u.country === country) || null;
     }
@@ -555,15 +421,6 @@ class JSONStorage {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-
-    if (this.useMongo) {
-      await UserModel.create({
-        ...userData,
-        _id: user._id,
-        position: (userData as any).position || '',
-      });
-      return user;
-    }
 
     this.users.push(user);
     this.saveToFile('users.json', this.users);
@@ -649,8 +506,6 @@ class JSONStorage {
   }
 
   async updateEmployee(id: string, updateData: Partial<Employee>): Promise<Employee | null> {
-    // If updateData contains country, use it. Otherwise, we MUST know the country.
-    // For now, let's assume the controller finds the employee first or passes the country.
     const country = updateData.country;
 
     if (!country || !this.employees[country]) return null;
@@ -687,23 +542,6 @@ class JSONStorage {
 
   // Payments methods
   async getPayments(country: string, filters?: { employeeId?: string; paymentType?: string; currency?: string; startDate?: string; endDate?: string }): Promise<Payment[]> {
-    if (this.useMongo) {
-      const query: any = {};
-      if (country) query.country = country;
-      if (filters?.employeeId) query.employeeId = filters.employeeId;
-      if (filters?.paymentType) query.paymentType = filters.paymentType;
-      if (filters?.currency) query.currency = filters.currency;
-
-      if (filters?.startDate || filters?.endDate) {
-        query.paymentDate = {};
-        if (filters.startDate) query.paymentDate.$gte = new Date(filters.startDate);
-        if (filters.endDate) query.paymentDate.$lte = new Date(filters.endDate);
-      }
-
-      const payments = await PaymentModel.find(query).sort({ paymentDate: -1 }).lean();
-      return payments.map(p => ({ ...p, _id: p._id.toString() } as any));
-    }
-
     if (!country || !this.payments[country]) return [];
 
     let filtered = this.payments[country];
@@ -732,21 +570,11 @@ class JSONStorage {
   }
 
   async getPaymentById(id: string, country: string): Promise<Payment | null> {
-    if (this.useMongo) {
-      const payment = await PaymentModel.findById(id).lean();
-      return payment ? ({ ...payment, _id: payment._id.toString() } as any) : null;
-    }
-
     if (!country || !this.payments[country]) return null;
     return this.payments[country].find(p => p._id === id) || null;
   }
 
   async getPaymentsByEmployeeId(employeeId: string, country: string): Promise<Payment[]> {
-    if (this.useMongo) {
-      const payments = await PaymentModel.find({ employeeId, country }).sort({ paymentDate: -1 }).lean();
-      return payments.map(p => ({ ...p, _id: p._id.toString() } as any));
-    }
-
     if (!country || !this.payments[country]) return [];
     return this.payments[country].filter(p => p.employeeId === employeeId).sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
   }
@@ -764,33 +592,12 @@ class JSONStorage {
       updatedAt: new Date().toISOString()
     };
 
-    if (this.useMongo) {
-      await PaymentModel.create({
-        ...paymentData,
-        _id: payment._id,
-        amountEGP: (paymentData as any).amountEGP || 0,
-        amountUSD: (paymentData as any).amountUSD || 0,
-        approvedBy: (paymentData as any).approvedBy || 'admin',
-        createdBy: (paymentData as any).createdBy || 'admin',
-      });
-      return payment;
-    }
-
     this.payments[country].push(payment);
     this.saveToFile(`payments_${country}.json`, this.payments[country]);
     return payment;
   }
 
   async updatePayment(id: string, updateData: Partial<Payment>): Promise<Payment | null> {
-    if (this.useMongo) {
-      const updated = await PaymentModel.findByIdAndUpdate(
-        id,
-        { $set: updateData },
-        { new: true }
-      ).lean();
-      return updated ? ({ ...updated, _id: updated._id.toString() } as any) : null;
-    }
-
     const country = updateData.country;
     if (!country || !this.payments[country]) return null;
 
@@ -808,11 +615,6 @@ class JSONStorage {
   }
 
   async deletePayment(id: string, country: string): Promise<boolean> {
-    if (this.useMongo) {
-      const result = await PaymentModel.findByIdAndDelete(id);
-      return !!result;
-    }
-
     if (!country || !this.payments[country]) return false;
 
     const index = this.payments[country].findIndex(p => p._id === id);

@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import mongoose from 'mongoose';
+
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import sectionRoutes from './routes/section.routes';
@@ -135,29 +135,7 @@ app.use('*', (req, res) => {
 });
 
 // Database connection function
-const connectDB = async () => {
-  if (mongoose.connection.readyState === 1) return;
 
-  if (process.env.MONGO_URI) {
-    try {
-      await mongoose.connect(process.env.MONGO_URI);
-      console.log('✅ Connected to MongoDB');
-    } catch (error) {
-      console.error('❌ MongoDB connection error:', error);
-    }
-  } else {
-    // Only log this once in development to avoid spam
-    if (NODE_ENV === 'development') {
-      console.log('⚠️  No MONGO_URI found, using local JSON storage');
-    }
-  }
-};
-
-// Middleware to ensure DB connection
-app.use(async (req, res, next) => {
-  await connectDB();
-  next();
-});
 
 // Initialize storage and start server (Local Development)
 const startServer = async () => {
@@ -169,7 +147,7 @@ const startServer = async () => {
     await seedDatabase();
     console.log('🌱 Database seeded successfully');
 
-    await connectDB();
+
 
     // Start the server
     app.listen(PORT, () => {
