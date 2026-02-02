@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import mongoose from 'mongoose';
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import sectionRoutes from './routes/section.routes';
@@ -145,23 +144,9 @@ const startServer = async () => {
     console.log('🌱 Database seeded successfully');
 
     // Start the server
-    // Connect to MongoDB if URI is provided
-    if (process.env.MONGO_URI) {
-      try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('✅ Connected to MongoDB');
-      } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
-        // Continue even if Mongo fails, falling back to JSON? 
-        // Or fail? For hybrid, maybe we want to know. 
-        // But jsonStorage checks readyState, so it will fallback to JSON if connection fails.
-      }
-    } else {
-      console.log('⚠️  No MONGO_URI found, using local JSON storage');
-    }
-
     app.listen(PORT, () => {
-      console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${NODE_ENV}`);
       console.log(`📁 Data directory: ${dataDir}`);
       console.log(`🔗 CORS origin: ${CORS_ORIGIN}`);
       console.log(`📋 API endpoints available at http://localhost:${PORT}/api`);
