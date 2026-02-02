@@ -134,7 +134,32 @@ app.use('*', (req, res) => {
   });
 });
 
-// Initialize storage and start server
+// Database connection function
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) return;
+
+  if (process.env.MONGO_URI) {
+    try {
+      await mongoose.connect(process.env.MONGO_URI);
+      console.log('✅ Connected to MongoDB');
+    } catch (error) {
+      console.error('❌ MongoDB connection error:', error);
+    }
+  } else {
+    // Only log this once in development to avoid spam
+    if (NODE_ENV === 'development') {
+      console.log('⚠️  No MONGO_URI found, using local JSON storage');
+    }
+  }
+};
+
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
+
+// Initialize storage and start server (Local Development)
 const startServer = async () => {
   try {
     // Initialize JSON storage
@@ -144,17 +169,7 @@ const startServer = async () => {
     await seedDatabase();
     console.log('🌱 Database seeded successfully');
 
-    // Connect to MongoDB if URI is provided
-    if (process.env.MONGO_URI) {
-      try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('✅ Connected to MongoDB');
-      } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
-      }
-    } else {
-      console.log('⚠️  No MONGO_URI found, using local JSON storage');
-    }
+    await connectDB();
 
     // Start the server
     app.listen(PORT, () => {
@@ -163,19 +178,6 @@ const startServer = async () => {
       console.log(`📁 Data directory: ${dataDir}`);
       console.log(`🔗 CORS origin: ${CORS_ORIGIN}`);
       console.log(`📋 API endpoints available at http://localhost:${PORT}/api`);
-
-      // Log registered routes for debugging
-      console.log('🛣️  Registered Routes:');
-      app._router.stack.forEach((r: any) => {
-        if (r.route && r.route.path) {
-          console.log(`   ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${r.route.path}`);
-        } else if (r.name === 'router') {
-          // Inner router
-          const regex = r.regexp.toString();
-          const cleanPath = regex.replace(/^\/\^\\/, '').replace(/\\\/\?\(\?=\\\/\|\$\)\/i$/, '');
-          console.log(`   ROUTER ${cleanPath}`);
-        }
-      });
     });
   } catch (error) {
     console.error('💥 Failed to start server:', error);
@@ -183,4 +185,10 @@ const startServer = async () => {
   }
 };
 
-startServer(); 
+// Only start server immediately if run directly
+if (require.main === module) {
+  startServer();
+}
+
+// Export for Vercel
+export default app; 
