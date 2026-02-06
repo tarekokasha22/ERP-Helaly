@@ -180,6 +180,15 @@ const Dashboard: React.FC = () => {
   const { t, language, formatDate } = useLanguage();
   const { formatMoney } = useCurrency();
   const queryClient = useQueryClient();
+
+  // CRITICAL FIX: Force invalidate all queries on mount to get fresh data
+  useEffect(() => {
+    console.log('?? Dashboard mounted - invalidating all queries for fresh data');
+    queryClient.invalidateQueries(['projects']);
+    queryClient.invalidateQueries(['sections']);
+    queryClient.invalidateQueries(['spendings']);
+    queryClient.invalidateQueries(['dashboard']);
+  }, []);
   const [timeRange, setTimeRange] = useState<'1_month' | '3_months' | '6_months' | '1_year' | 'all_time'>('all_time');
   const [totalBudget, setTotalBudget] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
