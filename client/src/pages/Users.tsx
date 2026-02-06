@@ -6,7 +6,7 @@ import {
   TrashIcon,
   UserCircleIcon
 } from '@heroicons/react/24/outline';
-import api from '../services/api';
+import api from '../services/apiService';
 import { mockGetUsers, mockCreateUser, mockUpdateUser, mockDeleteUser } from '../services/mockApi';
 import { toast } from 'react-toastify';
 import { useLanguage } from '../contexts/LanguageContext';

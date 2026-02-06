@@ -7,7 +7,7 @@ import {
   TrashIcon,
   PlusIcon
 } from '@heroicons/react/24/outline';
-import api from '../services/api';
+import api from '../services/apiService';
 import { mockGetProjectById, mockDeleteSection, mockCreateSpending, mockDeleteSpending, mockDeleteProject } from '../services/mockApi';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
