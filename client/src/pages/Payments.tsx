@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { mockGetPayments, mockCreatePayment, mockUpdatePayment, mockDeletePayment, mockGetPaymentStats, mockGetEmployees, mockGetProjects, mockGetSections } from '../services/mockApi';
+import api from '../services/apiService';
 import { toast } from 'react-toastify';
 import {
   PlusIcon,
@@ -228,7 +228,8 @@ const Payments: React.FC = () => {
     }
     try {
       setLoading(true);
-      const paymentsData = await mockGetPayments(country);
+      const res = await api.get('payments');
+      const paymentsData = res.data;
       setPayments((paymentsData as any) || []);
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -241,7 +242,8 @@ const Payments: React.FC = () => {
   const fetchEmployees = async () => {
     if (!country) return;
     try {
-      const employeesData = await mockGetEmployees(country);
+      const res = await api.get('employees');
+      const employeesData = res.data;
       setEmployees((employeesData as any) || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -251,7 +253,8 @@ const Payments: React.FC = () => {
   const fetchProjects = async () => {
     if (!country) return;
     try {
-      const projectsData = await mockGetProjects();
+      const res = await api.get('projects');
+      const projectsData = res.data;
       setProjects((projectsData as any) || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -261,7 +264,8 @@ const Payments: React.FC = () => {
   const fetchSections = async () => {
     if (!country) return;
     try {
-      const sectionsData = await mockGetSections();
+      const res = await api.get('sections');
+      const sectionsData = res.data;
       setSections((sectionsData as any) || []);
     } catch (error) {
       console.error('Error fetching sections:', error);
@@ -271,7 +275,20 @@ const Payments: React.FC = () => {
   const fetchStats = async () => {
     if (!country) return;
     try {
-      const statsData = await mockGetPaymentStats(country);
+      // Calculate stats from payments
+      const paymentsRes = await api.get('payments');
+      const allPayments = paymentsRes.data || [];
+      const statsData = {
+        totalPayments: allPayments.length,
+        totalAmountEGP: allPayments.reduce((sum: number, p: any) => sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0),
+        totalAmountUSD: allPayments.reduce((sum: number, p: any) => sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0),
+        salaryPayments: allPayments.filter((p: any) => p.paymentType === 'salary').length,
+        advancePayments: allPayments.filter((p: any) => p.paymentType === 'advance').length,
+        loanPayments: allPayments.filter((p: any) => p.paymentType === 'loan').length,
+        dailyPayments: allPayments.filter((p: any) => p.paymentType === 'daily').length,
+        todayTotal: 0,
+        thisMonthTotal: 0
+      };
 
       // Calculate today's and this month's totals
       const today = new Date();
@@ -408,10 +425,10 @@ const Payments: React.FC = () => {
       }
 
       if (editingPayment) {
-        await mockUpdatePayment(country, editingPayment.id, paymentData);
+        await api.put(`payments/${editingPayment.id}`, paymentData);
         toast.success(t.paymentUpdated);
       } else {
-        await mockCreatePayment(country, paymentData);
+        await api.post('payments', paymentData);
         toast.success(t.paymentCreated);
       }
       setShowForm(false);
@@ -451,7 +468,7 @@ const Payments: React.FC = () => {
     if (!country) return;
     if (window.confirm(t.deleteConfirm)) {
       try {
-        await mockDeletePayment(country, payment.id);
+        await api.delete(`payments/${payment.id}`);
         toast.success(t.paymentDeleted);
         fetchPayments();
         fetchStats();
