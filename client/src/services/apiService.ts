@@ -7,12 +7,19 @@ import realApi from './api';
 
 const USE_MOCK_API = process.env.REACT_APP_USE_MOCK_API === 'true';
 
-console.log(`🔧 API: ${USE_MOCK_API ? 'MOCK (client)' : 'REAL (server)'}`);
+console.log(`🔧 API: ${USE_MOCK_API ? 'MOCK (client)' : 'REAL (server)'}`)
+
+// Helper to get country from sessionStorage
+const getCountry = (): 'egypt' | 'libya' => {
+    const country = sessionStorage.getItem('selectedCountry');
+    return (country as 'egypt' | 'libya') || 'egypt';
+};
 
 // Mock API adapter that mimics realApi interface
 const mockApiAdapter = {
     async get(url: string, config?: any) {
         const path = url.replace(/^\//, '');
+        const country = getCountry();
 
         if (path === 'health') return { data: { status: 'ok' } };
         if (path === 'auth/me') return { data: await mockApi.mockGetUserProfile(sessionStorage.getItem('token') || '') };
@@ -20,18 +27,18 @@ const mockApiAdapter = {
         if (path.startsWith('projects/')) return { data: await mockApi.mockGetProjectById(path.split('/')[1]) };
         if (path === 'sections') return { data: await mockApi.mockGetSections() };
         if (path.startsWith('sections/')) return { data: await mockApi.mockGetSectionById(path.split('/')[1]) };
-        if (path === 'employees') return { data: await mockApi.mockGetEmployees() };
+        if (path === 'employees') return { data: await mockApi.mockGetEmployees(country) };
         if (path.startsWith('employees/')) {
             const id = path.split('/')[1];
-            const employees = await mockApi.mockGetEmployees();
+            const employees = await mockApi.mockGetEmployees(country);
             const emp = employees.find((e: any) => e.id === id);
             if (!emp) throw new Error('Employee not found');
             return { data: emp };
         }
-        if (path === 'payments') return { data: await mockApi.mockGetPayments() };
+        if (path === 'payments') return { data: await mockApi.mockGetPayments(country) };
         if (path.startsWith('payments/')) {
             const id = path.split('/')[1];
-            const payments = await mockApi.mockGetPayments();
+            const payments = await mockApi.mockGetPayments(country);
             const pay = payments.find((p: any) => p.id === id);
             if (!pay) throw new Error('Payment not found');
             return { data: pay };
@@ -44,6 +51,7 @@ const mockApiAdapter = {
 
     async post(url: string, data?: any) {
         const path = url.replace(/^\//, '');
+        const country = getCountry();
 
         if (path === 'auth/login') {
             const { email, password, country } = data;
@@ -51,25 +59,27 @@ const mockApiAdapter = {
         }
         if (path === 'projects') return { data: await mockApi.mockCreateProject(data) };
         if (path === 'sections') return { data: await mockApi.mockCreateSection(data) };
-        if (path === 'employees') return { data: await mockApi.mockCreateEmployee(data) };
-        if (path === 'payments') return { data: await mockApi.mockCreatePayment(data) };
+        if (path === 'employees') return { data: await mockApi.mockCreateEmployee(country, data) };
+        if (path === 'payments') return { data: await mockApi.mockCreatePayment(country, data) };
 
         throw new Error(`Mock API POST ${url} not implemented`);
     },
 
     async put(url: string, data?: any) {
         const [resource, id] = url.replace(/^\//, '').split('/');
+        const country = getCountry();
 
         if (resource === 'projects') return { data: await mockApi.mockUpdateProject(id, data) };
         if (resource === 'sections') return { data: await mockApi.mockUpdateSection(id, data) };
-        if (resource === 'employees') return { data: await mockApi.mockUpdateEmployee(id, data) };
-        if (resource === 'payments') return { data: await mockApi.mockUpdatePayment(id, data) };
+        if (resource === 'employees') return { data: await mockApi.mockUpdateEmployee(country, id, data) };
+        if (resource === 'payments') return { data: await mockApi.mockUpdatePayment(country, id, data) };
 
         throw new Error(`Mock API PUT ${url} not implemented`);
     },
 
     async delete(url: string) {
         const [resource, id] = url.replace(/^\//, '').split('/');
+        const country = getCountry();
 
         if (resource === 'projects') {
             await mockApi.mockDeleteProject(id);
@@ -80,11 +90,11 @@ const mockApiAdapter = {
             return { data: { success: true } };
         }
         if (resource === 'employees') {
-            await mockApi.mockDeleteEmployee(id);
+            await mockApi.mockDeleteEmployee(country, id);
             return { data: { success: true } };
         }
         if (resource === 'payments') {
-            await mockApi.mockDeletePayment(id);
+            await mockApi.mockDeletePayment(country, id);
             return { data: { success: true } };
         }
 
@@ -106,3 +116,4 @@ const mockApiAdapter = {
 
 // Export the appropriate service
 export default USE_MOCK_API ? mockApiAdapter : realApi;
+
