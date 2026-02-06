@@ -85,7 +85,7 @@ const Reports: React.FC = () => {
   // Fetch real data from API
   const { data: projects = [], isLoading: projectsLoading } = useQuery(['projects'], async () => {
     const res = await api.get('projects');
-    return res.data as any;
+    return Array.isArray(res.data) ? res.data : [];
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -95,7 +95,7 @@ const Reports: React.FC = () => {
 
   const { data: sections = [], isLoading: sectionsLoading } = useQuery(['sections'], async () => {
     const res = await api.get('sections');
-    return res.data as any;
+    return Array.isArray(res.data) ? res.data : [];
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -120,7 +120,7 @@ const Reports: React.FC = () => {
   const { data: employees = [], isLoading: employeesLoading } = useQuery(['employees', country], async () => {
     if (!country) return [];
     const res = await api.get('employees');
-    return res.data as any;
+    return Array.isArray(res.data) ? res.data : [];
   }, {
     enabled: !!country,
     staleTime: 30000,
@@ -131,7 +131,7 @@ const Reports: React.FC = () => {
   const { data: payments = [], isLoading: paymentsLoading } = useQuery(['payments', country], async () => {
     if (!country) return [];
     const res = await api.get('payments');
-    return res.data as any;
+    return Array.isArray(res.data) ? res.data : [];
   }, {
     enabled: !!country,
     staleTime: 30000,

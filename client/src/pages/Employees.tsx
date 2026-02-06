@@ -221,8 +221,8 @@ const Employees: React.FC = () => {
       ]);
       const projectsData = projectsRes.data;
       const sectionsData = sectionsRes.data;
-      setProjects(projectsData || []);
-      setSections(sectionsData || []);
+      setProjects(Array.isArray(projectsData) ? projectsData : []);
+      setSections(Array.isArray(sectionsData) ? sectionsData : []);
     } catch (error) {
       console.error('Error fetching projects/sections:', error);
     }

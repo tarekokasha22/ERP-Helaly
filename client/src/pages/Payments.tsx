@@ -230,7 +230,7 @@ const Payments: React.FC = () => {
       setLoading(true);
       const res = await api.get('payments');
       const paymentsData = res.data;
-      setPayments((paymentsData as any) || []);
+      setPayments(Array.isArray(paymentsData) ? paymentsData : []);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast.error(t.error);
@@ -244,7 +244,7 @@ const Payments: React.FC = () => {
     try {
       const res = await api.get('employees');
       const employeesData = res.data;
-      setEmployees((employeesData as any) || []);
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
@@ -255,7 +255,7 @@ const Payments: React.FC = () => {
     try {
       const res = await api.get('projects');
       const projectsData = res.data;
-      setProjects((projectsData as any) || []);
+      setProjects(Array.isArray(projectsData) ? projectsData : []);
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
@@ -266,7 +266,7 @@ const Payments: React.FC = () => {
     try {
       const res = await api.get('sections');
       const sectionsData = res.data;
-      setSections((sectionsData as any) || []);
+      setSections(Array.isArray(sectionsData) ? sectionsData : []);
     } catch (error) {
       console.error('Error fetching sections:', error);
     }
