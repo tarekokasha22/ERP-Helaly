@@ -1,8 +1,8 @@
 {
     "version": 2,
-    "buildCommand": "npm --prefix client install && npm --prefix client run build",
+    "buildCommand": "cd client && CI=false npm install && npm run build",
     "outputDirectory": "client/build",
-    "installCommand": "echo 'Skipping root install - using client only'",
+    "installCommand": "echo 'Dependencies installed in buildCommand'",
     "framework": null,
     "routes": [
         {
@@ -40,5 +40,8 @@
                 }
             ]
         }
-    ]
+    ],
+    "env": {
+        "NODE_OPTIONS": "--max-old-space-size=4096"
+    }
 }
