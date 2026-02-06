@@ -309,6 +309,31 @@ const Dashboard: React.FC = () => {
     setLastUpdated(new Date());
   }, [projectsUpdatedAt, sectionsUpdatedAt, spendingsUpdatedAt]);
 
+  // CRITICAL: Listen to localStorage changes for immediate updates
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('?? Dashboard: Storage changed, invalidating queries...');
+      queryClient.invalidateQueries(['projects']);
+      queryClient.invalidateQueries(['sections']);
+      queryClient.invalidateQueries(['spendings']);
+      queryClient.invalidateQueries(['dashboard']);
+      setLastUpdated(new Date());
+    };
+
+    // Listen to custom events from mockApi
+    window.addEventListener('localStorageChanged', handleStorageChange);
+    window.addEventListener('projectDataChanged', handleStorageChange);
+    window.addEventListener('sectionDataChanged', handleStorageChange);
+    window.addEventListener('spendingDataChanged', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('localStorageChanged', handleStorageChange);
+      window.removeEventListener('projectDataChanged', handleStorageChange);
+      window.removeEventListener('sectionDataChanged', handleStorageChange);
+      window.removeEventListener('spendingDataChanged', handleStorageChange);
+    };
+  }, [queryClient]);
+
   // Get filtered data based on time range
   const getFilteredData = () => {
     const now = new Date();
