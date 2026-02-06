@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import api from '../services/api';
+import { mockGetPayments, mockCreatePayment, mockUpdatePayment, mockDeletePayment, mockGetPaymentStats, mockGetEmployees, mockGetProjects, mockGetSections } from '../services/mockApi';
 import { toast } from 'react-toastify';
 import {
   PlusIcon,
@@ -228,8 +228,8 @@ const Payments: React.FC = () => {
     }
     try {
       setLoading(true);
-      const response = await api.get(`/payments/${country}`);
-      setPayments(response.data.data || []);
+      const paymentsData = await mockGetPayments(country);
+      setPayments((paymentsData as any) || []);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast.error(t.error);
@@ -241,8 +241,8 @@ const Payments: React.FC = () => {
   const fetchEmployees = async () => {
     if (!country) return;
     try {
-      const response = await api.get(`/employees/${country}`);
-      setEmployees(response.data.data || []);
+      const employeesData = await mockGetEmployees(country);
+      setEmployees((employeesData as any) || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
@@ -251,8 +251,8 @@ const Payments: React.FC = () => {
   const fetchProjects = async () => {
     if (!country) return;
     try {
-      const response = await api.get(`/projects/${country}`);
-      setProjects(response.data.data || []);
+      const projectsData = await mockGetProjects();
+      setProjects((projectsData as any) || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
     }
@@ -261,8 +261,8 @@ const Payments: React.FC = () => {
   const fetchSections = async () => {
     if (!country) return;
     try {
-      const response = await api.get(`/sections/${country}`);
-      setSections(response.data.data || []);
+      const sectionsData = await mockGetSections();
+      setSections((sectionsData as any) || []);
     } catch (error) {
       console.error('Error fetching sections:', error);
     }
@@ -271,8 +271,7 @@ const Payments: React.FC = () => {
   const fetchStats = async () => {
     if (!country) return;
     try {
-      const response = await api.get(`/payments/${country}/stats`);
-      const statsData = response.data.data;
+      const statsData = await mockGetPaymentStats(country);
 
       // Calculate today's and this month's totals
       const today = new Date();
@@ -394,6 +393,7 @@ const Payments: React.FC = () => {
       }
     }
 
+    if (!country) return;
     try {
       const paymentData = { ...formData };
       if (paymentData.currency !== 'split') {
@@ -408,10 +408,10 @@ const Payments: React.FC = () => {
       }
 
       if (editingPayment) {
-        await api.put(`/payments/${country}/${editingPayment.id}`, paymentData);
+        await mockUpdatePayment(country, editingPayment.id, paymentData);
         toast.success(t.paymentUpdated);
       } else {
-        await api.post(`/payments/${country}`, paymentData);
+        await mockCreatePayment(country, paymentData);
         toast.success(t.paymentCreated);
       }
       setShowForm(false);
@@ -448,9 +448,10 @@ const Payments: React.FC = () => {
   };
 
   const handleDelete = async (payment: Payment) => {
+    if (!country) return;
     if (window.confirm(t.deleteConfirm)) {
       try {
-        await api.delete(`/payments/${country}/${payment.id}`);
+        await mockDeletePayment(country, payment.id);
         toast.success(t.paymentDeleted);
         fetchPayments();
         fetchStats();

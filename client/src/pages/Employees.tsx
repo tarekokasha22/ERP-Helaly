@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import api from '../services/api';
+import { mockGetEmployees, mockGetEmployeeById, mockCreateEmployee, mockUpdateEmployee, mockDeleteEmployee, mockGetEmployeeStats, mockGetProjects, mockGetSections } from '../services/mockApi';
 import { toast } from 'react-toastify';
 import {
   PlusIcon,
@@ -215,12 +215,12 @@ const Employees: React.FC = () => {
   const fetchProjectsAndSections = async () => {
     if (!country) return;
     try {
-      const [projectsRes, sectionsRes] = await Promise.all([
-        api.get('/projects'),
-        api.get('/sections')
+      const [projectsData, sectionsData] = await Promise.all([
+        mockGetProjects(),
+        mockGetSections()
       ]);
-      setProjects(projectsRes.data.data || []);
-      setSections(sectionsRes.data.data || []);
+      setProjects(projectsData || []);
+      setSections(sectionsData || []);
     } catch (error) {
       console.error('Error fetching projects/sections:', error);
     }
@@ -233,8 +233,8 @@ const Employees: React.FC = () => {
     }
     try {
       setLoading(true);
-      const response = await api.get(`/employees/${country}`);
-      setEmployees(response.data.data || []);
+      const employeesData = await mockGetEmployees(country);
+      setEmployees((employeesData as any) || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error(t.error);
@@ -248,8 +248,8 @@ const Employees: React.FC = () => {
       return;
     }
     try {
-      const response = await api.get(`/employees/${country}/stats`);
-      setStats(response.data.data);
+      const statsData = await mockGetEmployeeStats(country);
+      setStats(statsData);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -282,6 +282,7 @@ const Employees: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!country) return;
     try {
       // Prepare data with sectionId instead of departmentId for backend compatibility
       const submitData = {
@@ -290,10 +291,10 @@ const Employees: React.FC = () => {
       };
 
       if (editingEmployee) {
-        await api.put(`/employees/${country}/${editingEmployee.id}`, submitData);
+        await mockUpdateEmployee(country, editingEmployee.id, submitData);
         toast.success(t.employeeUpdated);
       } else {
-        await api.post(`/employees/${country}`, submitData);
+        await mockCreateEmployee(country, submitData);
         toast.success(t.employeeCreated);
       }
       setShowForm(false);
@@ -308,7 +309,7 @@ const Employees: React.FC = () => {
   };
 
   const handleEdit = (employee: Employee) => {
-    setEditingEmployee(employee);
+    setEditingEmployee(employee as any);
     setFormData({
       name: employee.name,
       email: employee.email || '',
@@ -333,9 +334,10 @@ const Employees: React.FC = () => {
       return;
     }
 
+    if (!country) return;
     if (window.confirm(t.deleteConfirm)) {
       try {
-        await api.delete(`/employees/${country}/${employee.id}`);
+        await mockDeleteEmployee(country, employee.id);
         toast.success(t.employeeDeleted);
         fetchEmployees();
         fetchStats();
@@ -347,10 +349,11 @@ const Employees: React.FC = () => {
   };
 
   const handleViewPaymentHistory = async (employee: Employee) => {
+    if (!country) return;
     try {
       // Fetch full employee data with payment history
-      const response = await api.get(`/employees/${country}/${employee.id}`);
-      setSelectedEmployee(response.data.data);
+      const employeeData = await mockGetEmployeeById(country, employee.id);
+      setSelectedEmployee(employeeData as any);
       setShowPaymentHistory(true);
     } catch (error) {
       console.error('Error fetching employee details:', error);

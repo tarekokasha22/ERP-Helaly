@@ -19,29 +19,29 @@ const loadFromStorage = <T>(key: string, defaultValue: T): T => {
 const saveToStorage = <T>(key: string, data: T): void => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
-    
+
     // Dispatch multiple events to ensure dashboard updates immediately
-    window.dispatchEvent(new CustomEvent('localStorageChanged', { 
-      detail: { key, data } 
+    window.dispatchEvent(new CustomEvent('localStorageChanged', {
+      detail: { key, data }
     }));
-    
+
     // Also dispatch specific events based on data type
     if (key.includes('projects')) {
-      window.dispatchEvent(new CustomEvent('projectDataChanged', { 
-        detail: { key, data, timestamp: Date.now() } 
+      window.dispatchEvent(new CustomEvent('projectDataChanged', {
+        detail: { key, data, timestamp: Date.now() }
       }));
     }
     if (key.includes('sections')) {
-      window.dispatchEvent(new CustomEvent('sectionDataChanged', { 
-        detail: { key, data, timestamp: Date.now() } 
+      window.dispatchEvent(new CustomEvent('sectionDataChanged', {
+        detail: { key, data, timestamp: Date.now() }
       }));
     }
     if (key.includes('spendings')) {
-      window.dispatchEvent(new CustomEvent('spendingDataChanged', { 
-        detail: { key, data, timestamp: Date.now() } 
+      window.dispatchEvent(new CustomEvent('spendingDataChanged', {
+        detail: { key, data, timestamp: Date.now() }
       }));
     }
-    
+
     console.log(`💾 localStorage saved: ${key} with ${Array.isArray(data) ? data.length : 'data'} items`);
     console.log(`📡 Events dispatched for ${key} data change`);
   } catch (error) {
@@ -51,9 +51,9 @@ const saveToStorage = <T>(key: string, data: T): void => {
 
 // Clear all app data from localStorage
 export const clearAllStoredData = () => {
-  const keys = ['helaly_users', 'helaly_egypt_projects', 'helaly_libya_projects', 
-                'helaly_egypt_sections', 'helaly_libya_sections', 'helaly_egypt_spendings', 
-                'helaly_libya_spendings', 'helaly_inventory'];
+  const keys = ['helaly_users', 'helaly_egypt_projects', 'helaly_libya_projects',
+    'helaly_egypt_sections', 'helaly_libya_sections', 'helaly_egypt_spendings',
+    'helaly_libya_spendings', 'helaly_inventory'];
   keys.forEach(key => {
     try {
       localStorage.removeItem(key);
@@ -243,7 +243,7 @@ const getUserCountryFromToken = (): 'egypt' | 'libya' => {
   if (!token || !token.startsWith('mock-jwt-token-')) {
     return 'egypt'; // Default to egypt
   }
-  
+
   // Extract user ID from token
   const userId = token.split('-')[3];
   const user = users.find(u => u.id === userId);
@@ -255,9 +255,9 @@ const getProjectsByCountry = (country: 'egypt' | 'libya') => {
   // Always get fresh data from localStorage to ensure we have the latest data
   const freshEgyptProjects = loadFromStorage('helaly_egypt_projects', defaultEgyptProjects);
   const freshLibyaProjects = loadFromStorage('helaly_libya_projects', defaultLibyaProjects);
-  
+
   console.log(`🔄 Getting fresh ${country} projects: ${country === 'egypt' ? freshEgyptProjects.length : freshLibyaProjects.length} found`);
-  
+
   return (country === 'egypt' ? freshEgyptProjects : freshLibyaProjects) as Project[];
 };
 
@@ -446,9 +446,9 @@ const getSectionsByCountry = (country: 'egypt' | 'libya') => {
   // Always get fresh data from localStorage to ensure we have the latest data
   const freshEgyptSections = loadFromStorage('helaly_egypt_sections', defaultEgyptSections);
   const freshLibyaSections = loadFromStorage('helaly_libya_sections', defaultLibyaSections);
-  
+
   console.log(`🔄 Getting fresh ${country} sections: ${country === 'egypt' ? freshEgyptSections.length : freshLibyaSections.length} found`);
-  
+
   return (country === 'egypt' ? freshEgyptSections : freshLibyaSections);
 };
 
@@ -628,9 +628,9 @@ const getSpendingsByCountry = (country: 'egypt' | 'libya') => {
   // Always get fresh data from localStorage to ensure we have the latest data
   const freshEgyptSpendings = loadFromStorage('helaly_egypt_spendings', defaultEgyptSpendings);
   const freshLibyaSpendings = loadFromStorage('helaly_libya_spendings', defaultLibyaSpendings);
-  
+
   console.log(`🔄 Getting fresh ${country} spendings: ${country === 'egypt' ? freshEgyptSpendings.length : freshLibyaSpendings.length} found`);
-  
+
   return (country === 'egypt' ? freshEgyptSpendings : freshLibyaSpendings) as Spending[];
 };
 
@@ -647,45 +647,45 @@ let spendings = [...egyptSpendings, ...libyaSpendings];
 export const mockLogin = async (email: string, password: string, country?: 'egypt' | 'libya') => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 500));
-  
+
   // If country is provided, find user with email, password, and country
   // Otherwise, find the first user with email and password (backward compatibility)
-  const user = country 
+  const user = country
     ? users.find(u => u.email === email && u.password === password && u.country === country)
     : users.find(u => u.email === email && u.password === password);
-  
+
   if (!user) {
-    const errorMsg = country 
+    const errorMsg = country
       ? `Invalid email, password, or country selection`
       : 'Invalid email or password';
     throw new Error(errorMsg);
   }
-  
+
   // Create mock token
   const token = `mock-jwt-token-${user.id}-${Date.now()}`;
-  
+
   // Return user data without password
   const { password: _, ...userData } = user;
-  
+
   return { token, user: userData };
 };
 
 export const mockGetUserProfile = async (token: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   if (!token.startsWith('mock-jwt-token-')) {
     throw new Error('Invalid token');
   }
-  
+
   // Extract user ID from token
   const userId = token.split('-')[3];
   const user = users.find(u => u.id === userId);
-  
+
   if (!user) {
     throw new Error('User not found');
   }
-  
+
   // Return user data without password
   const { password: _, ...userData } = user;
   return userData;
@@ -699,7 +699,7 @@ const calculateProjectProgress = (projectId: string) => {
   const countrySections = getSectionsByCountry(userCountry);
   const projectSections = countrySections.filter(s => s.projectId === projectId);
   if (projectSections.length === 0) return 0;
-  
+
   const totalProgress = projectSections.reduce((sum, section) => sum + (section.progress || 0), 0);
   return Math.round(totalProgress / projectSections.length);
 };
@@ -707,26 +707,26 @@ const calculateProjectProgress = (projectId: string) => {
 export const mockGetProjects = async () => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   console.log('🔄 mockGetProjects: Starting to fetch projects...');
-  
+
   // Get user's country and filter projects - ALWAYS read fresh from localStorage
   const userCountry = getUserCountryFromToken();
   console.log('🔄 mockGetProjects: User country:', userCountry);
-  
+
   // Force fresh read from localStorage each time
   const freshEgyptProjects = loadFromStorage('helaly_egypt_projects', defaultEgyptProjects);
   const freshLibyaProjects = loadFromStorage('helaly_libya_projects', defaultLibyaProjects);
-  
+
   const countryProjects = userCountry === 'egypt' ? freshEgyptProjects : freshLibyaProjects;
   console.log(`🔄 mockGetProjects: Found ${countryProjects.length} projects for ${userCountry}`);
-  
+
   // Update project progress based on sections
   const updatedProjects = countryProjects.map(project => ({
     ...project,
     progress: calculateProjectProgress(project.id)
   }));
-  
+
   console.log('✅ mockGetProjects: Returning projects:', updatedProjects.map(p => ({ name: p.name, status: p.status })));
   return updatedProjects;
 };
@@ -734,30 +734,30 @@ export const mockGetProjects = async () => {
 export const mockGetProjectById = async (id: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 200));
-  
+
   console.log(`🔍 Looking for project with ID: ${id}`);
-  
+
   // Get user's country and search in country-specific array for fresh data
   const userCountry = getUserCountryFromToken();
   const countryProjects = getProjectsByCountry(userCountry);
-  
+
   const project = countryProjects.find(p => p.id === id);
-  
+
   if (!project) {
     console.error(`❌ Project ${id} not found in ${userCountry} projects`);
     throw new Error('Project not found');
   }
-  
+
   console.log(`✅ Found project: ${project.name}`);
-  
+
   // Get sections for this project
   const countrySections = getSectionsByCountry(userCountry);
   const projectSections = countrySections.filter(s => s.projectId === id);
-  
+
   // Get spendings for this project
   const countrySpendings = getSpendingsByCountry(userCountry);
   const projectSpendings = countrySpendings.filter(s => s.projectId === id);
-  
+
   // Return project with sections, updated progress and spendings
   return {
     ...project,
@@ -770,20 +770,20 @@ export const mockGetProjectById = async (id: string) => {
 export const mockCreateProject = async (project: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 500));
-  
+
   // Get current user's country to add project to correct country-specific array
   const userCountry = getUserCountryFromToken();
-  
+
   const newProject = {
     ...project,
     id: uuidv4(),
     country: userCountry,
     createdAt: new Date().toISOString()
   };
-  
+
   // Add to the combined projects array
   projects.push(newProject);
-  
+
   // IMPORTANT: Also add to the appropriate country-specific array
   // so that getProjectsByCountry can find it
   if (userCountry === 'egypt') {
@@ -795,7 +795,7 @@ export const mockCreateProject = async (project: any) => {
     // Save Libya projects to localStorage
     saveToStorage('helaly_libya_projects', libyaProjects);
   }
-  
+
   // Update in-memory arrays from localStorage
   if (userCountry === 'egypt') {
     egyptProjects.length = 0;
@@ -804,73 +804,73 @@ export const mockCreateProject = async (project: any) => {
     libyaProjects.length = 0;
     libyaProjects.push(...loadFromStorage('helaly_libya_projects', defaultLibyaProjects));
   }
-  
+
   // Rebuild combined projects array
   rebuildProjectsArray();
-  
+
   // Save users to localStorage (in case user data was updated)
   saveToStorage('helaly_users', users);
-  
+
   // Automatically update sections cache if any sections reference this project
   // This ensures that when sections are queried, they will include the new project
-  
+
   return newProject;
 };
 
 export const mockUpdateProject = async (id: string, projectData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 500));
-  
+
   console.log(`✏️ Updating project with ID: ${id}`);
-  
+
   // Get user's country to update in correct country-specific array
   const userCountry = getUserCountryFromToken();
-  
+
   let updatedProject;
-  
+
   // Find and update in country-specific arrays
   if (userCountry === 'egypt') {
     const index = egyptProjects.findIndex(p => p.id === id);
     if (index === -1) {
       throw new Error('Project not found in Egypt projects');
     }
-    
+
     // Update Egypt project
     egyptProjects[index] = {
       ...egyptProjects[index],
       ...projectData,
       updatedAt: new Date().toISOString()
     };
-    
+
     updatedProject = egyptProjects[index];
-    
+
     // Save updated Egypt projects to localStorage
     saveToStorage('helaly_egypt_projects', egyptProjects);
     console.log(`✅ Project updated in Egypt projects. Total: ${egyptProjects.length}`);
-    
+
   } else {
     const index = libyaProjects.findIndex(p => p.id === id);
     if (index === -1) {
       throw new Error('Project not found in Libya projects');
     }
-    
+
     // Update Libya project
     libyaProjects[index] = {
       ...libyaProjects[index],
       ...projectData,
       updatedAt: new Date().toISOString()
     };
-    
+
     updatedProject = libyaProjects[index];
-    
+
     // Save updated Libya projects to localStorage
     saveToStorage('helaly_libya_projects', libyaProjects);
     console.log(`✅ Project updated in Libya projects. Total: ${libyaProjects.length}`);
   }
-  
+
   // Update combined projects array
   rebuildProjectsArray();
-  
+
   console.log(`✅ Project ${id} updated successfully!`);
   return updatedProject;
 };
@@ -878,43 +878,43 @@ export const mockUpdateProject = async (id: string, projectData: any) => {
 export const mockDeleteProject = async (id: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   console.log(`🗑️ Deleting project with ID: ${id}`);
-  
+
   // Get user's country to delete from correct country-specific array
   const userCountry = getUserCountryFromToken();
-  
+
   // Find and delete from country-specific arrays
   if (userCountry === 'egypt') {
     const index = egyptProjects.findIndex(p => p.id === id);
     if (index === -1) {
       throw new Error('Project not found in Egypt projects');
     }
-    
+
     // Remove from Egypt projects array
     egyptProjects.splice(index, 1);
-    
+
     // Save updated Egypt projects to localStorage
     saveToStorage('helaly_egypt_projects', egyptProjects);
     console.log(`✅ Project deleted from Egypt projects. Remaining: ${egyptProjects.length}`);
-    
+
   } else {
     const index = libyaProjects.findIndex(p => p.id === id);
     if (index === -1) {
       throw new Error('Project not found in Libya projects');
     }
-    
+
     // Remove from Libya projects array
     libyaProjects.splice(index, 1);
-    
+
     // Save updated Libya projects to localStorage
     saveToStorage('helaly_libya_projects', libyaProjects);
     console.log(`✅ Project deleted from Libya projects. Remaining: ${libyaProjects.length}`);
   }
-  
+
   // Update combined projects array
   rebuildProjectsArray();
-  
+
   // Delete associated spendings
   if (userCountry === 'egypt') {
     const beforeCount = egyptSpendings.length;
@@ -927,10 +927,10 @@ export const mockDeleteProject = async (id: string) => {
     saveToStorage('helaly_libya_spendings', libyaSpendings);
     console.log(`🧹 Deleted ${beforeCount - libyaSpendings.length} associated spendings from Libya`);
   }
-  
+
   // Rebuild combined spendings array
   rebuildSpendingsArray();
-  
+
   console.log(`✅ Project ${id} deleted successfully!`);
   return { success: true };
 };
@@ -940,12 +940,12 @@ export const mockDeleteProject = async (id: string) => {
 export const mockGetSections = async (projectId?: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   // Get user's country and filter sections
   const userCountry = getUserCountryFromToken();
   const countrySections = getSectionsByCountry(userCountry);
   const countryProjects = getProjectsByCountry(userCountry);
-  
+
   // Enhance sections with project names
   const sectionsWithProjectNames = countrySections.map(section => {
     const project = countryProjects.find(p => p.id === section.projectId);
@@ -954,29 +954,29 @@ export const mockGetSections = async (projectId?: string) => {
       projectName: project?.name || 'مشروع غير محدد'
     };
   });
-  
+
   // If projectId is provided, filter by projectId as well
   if (projectId) {
     return sectionsWithProjectNames.filter(section => section.projectId === projectId);
   }
-  
+
   return sectionsWithProjectNames;
 };
 
 export const mockGetSectionById = async (id: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 200));
-  
+
   // Get user's country and filter sections
   const userCountry = getUserCountryFromToken();
   const countrySections = getSectionsByCountry(userCountry);
-  
+
   const section = countrySections.find(s => s.id === id);
-  
+
   if (!section) {
     throw new Error('Section not found');
   }
-  
+
   // Get project information if section has projectId
   let projectName = '';
   if (section.projectId) {
@@ -984,7 +984,7 @@ export const mockGetSectionById = async (id: string) => {
     const project = countryProjects.find(p => p.id === section.projectId);
     projectName = project?.name || '';
   }
-  
+
   return {
     ...section,
     projectName
@@ -994,15 +994,15 @@ export const mockGetSectionById = async (id: string) => {
 export const mockCreateSection = async (sectionData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   // Calculate progress automatically from quantities
-  const progress = sectionData.targetQuantity && sectionData.targetQuantity > 0 
-    ? Math.round((sectionData.completedQuantity / sectionData.targetQuantity) * 100) 
+  const progress = sectionData.targetQuantity && sectionData.targetQuantity > 0
+    ? Math.round((sectionData.completedQuantity / sectionData.targetQuantity) * 100)
     : 0;
-  
+
   // Get user's country to add to correct sections array
   const userCountry = getUserCountryFromToken();
-  
+
   const newSection = {
     id: uuidv4(),
     name: sectionData.name,
@@ -1020,7 +1020,7 @@ export const mockCreateSection = async (sectionData: any) => {
     country: userCountry,
     createdAt: new Date().toISOString()
   };
-  
+
   // Add to correct country-specific sections array and save to localStorage
   if (userCountry === 'egypt') {
     egyptSections.push(newSection);
@@ -1031,40 +1031,40 @@ export const mockCreateSection = async (sectionData: any) => {
     // Save Libya sections to localStorage
     saveToStorage('helaly_libya_sections', libyaSections);
   }
-  
+
   // Also add to combined array for backward compatibility
   sections.push(newSection);
-  
+
   console.log(`✅ Section created and saved to localStorage for ${userCountry}. Total: ${userCountry === 'egypt' ? egyptSections.length : libyaSections.length}`);
-  
+
   return newSection;
 };
 
 export const mockUpdateSection = async (id: string, sectionData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   // Get user's country and find section in country-specific array
   const userCountry = getUserCountryFromToken();
   const countrySections = getSectionsByCountry(userCountry);
   const countryIndex = countrySections.findIndex(s => s.id === id);
-  
+
   if (countryIndex === -1) {
     throw new Error('Section not found');
   }
-  
+
   // Find in combined array too
   const index = sections.findIndex(s => s.id === id);
-  
+
   // Calculate progress automatically from quantities if they are being updated
   const currentSection = countrySections[countryIndex];
   const targetQuantity = sectionData.targetQuantity !== undefined ? sectionData.targetQuantity : currentSection.targetQuantity;
   const completedQuantity = sectionData.completedQuantity !== undefined ? sectionData.completedQuantity : currentSection.completedQuantity;
-  
-  const progress = targetQuantity && targetQuantity > 0 
-    ? Math.round((completedQuantity / targetQuantity) * 100) 
+
+  const progress = targetQuantity && targetQuantity > 0
+    ? Math.round((completedQuantity / targetQuantity) * 100)
     : 0;
-  
+
   // Update section data
   const updatedSection = {
     ...currentSection,
@@ -1073,15 +1073,15 @@ export const mockUpdateSection = async (id: string, sectionData: any) => {
     manager: sectionData.manager || sectionData.assignedTo || currentSection.manager,
     updatedAt: new Date().toISOString()
   };
-  
+
   // Update in country-specific array
   countrySections[countryIndex] = updatedSection;
-  
+
   // Update in combined array if found
   if (index !== -1) {
     sections[index] = updatedSection;
   }
-  
+
   // Save to localStorage based on country
   if (userCountry === 'egypt') {
     // Update the actual egyptSections array reference
@@ -1092,25 +1092,25 @@ export const mockUpdateSection = async (id: string, sectionData: any) => {
     libyaSections[countryIndex] = updatedSection;
     saveToStorage('helaly_libya_sections', libyaSections);
   }
-  
+
   console.log(`✅ Section updated and saved to localStorage for ${userCountry}. Total: ${userCountry === 'egypt' ? egyptSections.length : libyaSections.length}`);
-  
+
   return updatedSection;
 };
 
 export const mockDeleteSection = async (id: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   // Get user's country and find section in country-specific array
   const userCountry = getUserCountryFromToken();
   const countrySections = getSectionsByCountry(userCountry);
   const countryIndex = countrySections.findIndex(s => s.id === id);
-  
+
   if (countryIndex === -1) {
     throw new Error('Section not found');
   }
-  
+
   // Delete from country-specific array
   if (userCountry === 'egypt') {
     egyptSections.splice(countryIndex, 1);
@@ -1121,12 +1121,12 @@ export const mockDeleteSection = async (id: string) => {
     // Save updated Libya sections to localStorage
     saveToStorage('helaly_libya_sections', libyaSections);
   }
-  
+
   // Delete from combined array
   sections = sections.filter(s => s.id !== id);
-  
+
   console.log(`✅ Section deleted and localStorage updated for ${userCountry}. Total: ${userCountry === 'egypt' ? egyptSections.length : libyaSections.length}`);
-  
+
   return { success: true };
 };
 
@@ -1135,32 +1135,32 @@ export const mockDeleteSection = async (id: string) => {
 export const mockGetSpendings = async (projectId?: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   // Get user's country and filter spendings
   const userCountry = getUserCountryFromToken();
   const countrySpendings = getSpendingsByCountry(userCountry);
-  
+
   if (projectId) {
     return countrySpendings.filter(s => s.projectId === projectId);
   }
-  
+
   return [...countrySpendings];
 };
 
 export const mockCreateSpending = async (spendingData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   // Get user's country to add to correct spendings array
   const userCountry = getUserCountryFromToken();
-  
+
   const newSpending = {
     id: uuidv4(),
     ...spendingData,
     country: userCountry,
     createdAt: new Date().toISOString()
   };
-  
+
   // Add to correct country-specific spendings array
   if (userCountry === 'egypt') {
     egyptSpendings.push(newSpending);
@@ -1171,43 +1171,43 @@ export const mockCreateSpending = async (spendingData: any) => {
     // Save Libya spendings to localStorage
     saveToStorage('helaly_libya_spendings', libyaSpendings);
   }
-  
+
   // Rebuild combined spendings array
   rebuildSpendingsArray();
-  
+
   return newSpending;
 };
 
 export const mockUpdateSpending = async (id: string, spendingData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   // Get user's country and find spending in country-specific array
   const userCountry = getUserCountryFromToken();
   const countrySpendings = getSpendingsByCountry(userCountry);
   const countryIndex = countrySpendings.findIndex(s => s.id === id);
-  
+
   if (countryIndex === -1) {
     throw new Error('Spending not found');
   }
-  
+
   // Find in combined array too
   const index = spendings.findIndex(s => s.id === id);
-  
+
   // Update spending data
   const updatedSpending = {
     ...countrySpendings[countryIndex],
     ...spendingData
   };
-  
+
   // Update in country-specific array
   countrySpendings[countryIndex] = updatedSpending;
-  
+
   // Update in combined array if found
   if (index !== -1) {
     spendings[index] = updatedSpending;
   }
-  
+
   // Save to localStorage based on country
   if (userCountry === 'egypt') {
     // Update the actual egyptSpendings array reference
@@ -1218,25 +1218,25 @@ export const mockUpdateSpending = async (id: string, spendingData: any) => {
     libyaSpendings[countryIndex] = updatedSpending;
     saveToStorage('helaly_libya_spendings', libyaSpendings);
   }
-  
+
   console.log(`✅ Spending ${id} updated and saved to localStorage for ${userCountry}. Total: ${userCountry === 'egypt' ? egyptSpendings.length : libyaSpendings.length}`);
-  
+
   return updatedSpending;
 };
 
 export const mockDeleteSpending = async (id: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   // Get user's country and find spending in country-specific array
   const userCountry = getUserCountryFromToken();
   const countrySpendings = getSpendingsByCountry(userCountry);
   const countryIndex = countrySpendings.findIndex(s => s.id === id);
-  
+
   if (countryIndex === -1) {
     throw new Error('Spending not found');
   }
-  
+
   // Delete from country-specific array and save to localStorage
   if (userCountry === 'egypt') {
     egyptSpendings.splice(countryIndex, 1);
@@ -1247,13 +1247,549 @@ export const mockDeleteSpending = async (id: string) => {
     // Save updated Libya spendings to localStorage
     saveToStorage('helaly_libya_spendings', libyaSpendings);
   }
-  
+
   // Delete from combined array
   spendings = spendings.filter(s => s.id !== id);
-  
+
   console.log(`✅ Spending ${id} deleted and localStorage updated for ${userCountry}. Total: ${userCountry === 'egypt' ? egyptSpendings.length : libyaSpendings.length}`);
-  
+
   return { success: true };
+};
+
+// --- Employees ---
+
+// Default Employees Data - Egypt
+const defaultEgyptEmployees = [
+  {
+    id: 'eg-emp-1',
+    name: 'أحمد محمد علي',
+    email: 'ahmed@helaly.com',
+    phone: '+201234567001',
+    employeeType: 'monthly',
+    position: 'مهندس مدني',
+    monthlySalary: 15000,
+    dailyRate: 0,
+    currency: 'EGP',
+    hireDate: '2023-01-15',
+    notes: 'مهندس مدني خبرة 10 سنوات',
+    projectId: 'eg-1',
+    sectionId: 'eg-s-1',
+    active: true,
+    totalEarned: 180000,
+    totalPaid: 165000,
+    balance: 15000,
+    country: 'egypt',
+    payments: [],
+    createdAt: '2023-01-15T08:00:00Z',
+    createdBy: 'admin',
+    updatedAt: '2023-01-15T08:00:00Z'
+  },
+  {
+    id: 'eg-emp-2',
+    name: 'سارة أحمد حسن',
+    email: 'sara@helaly.com',
+    phone: '+201234567002',
+    employeeType: 'monthly',
+    position: 'مهندسة معمارية',
+    monthlySalary: 12000,
+    dailyRate: 0,
+    currency: 'EGP',
+    hireDate: '2023-03-01',
+    notes: 'مهندسة معمارية متخصصة في التصميم',
+    projectId: 'eg-2',
+    sectionId: 'eg-s-3',
+    active: true,
+    totalEarned: 120000,
+    totalPaid: 120000,
+    balance: 0,
+    country: 'egypt',
+    payments: [],
+    createdAt: '2023-03-01T08:00:00Z',
+    createdBy: 'admin',
+    updatedAt: '2023-03-01T08:00:00Z'
+  },
+  {
+    id: 'eg-emp-3',
+    name: 'محمد عبدالرحمن',
+    email: 'mohamed@helaly.com',
+    phone: '+201234567003',
+    employeeType: 'daily',
+    position: 'عامل بناء',
+    monthlySalary: 0,
+    dailyRate: 300,
+    currency: 'EGP',
+    hireDate: '2023-06-01',
+    notes: 'عامل بناء ماهر',
+    projectId: 'eg-1',
+    sectionId: 'eg-s-2',
+    active: true,
+    totalEarned: 45000,
+    totalPaid: 42000,
+    balance: 3000,
+    country: 'egypt',
+    payments: [],
+    createdAt: '2023-06-01T08:00:00Z',
+    createdBy: 'admin',
+    updatedAt: '2023-06-01T08:00:00Z'
+  },
+  {
+    id: 'eg-emp-4',
+    name: 'فاطمة الزهراء',
+    email: 'fatima@helaly.com',
+    phone: '+201234567004',
+    employeeType: 'monthly',
+    position: 'مديرة مشروع',
+    monthlySalary: 20000,
+    dailyRate: 0,
+    currency: 'EGP',
+    hireDate: '2022-11-01',
+    notes: 'مديرة مشروع خبرة 15 سنة',
+    projectId: 'eg-4',
+    sectionId: 'eg-s-5',
+    active: true,
+    totalEarned: 260000,
+    totalPaid: 260000,
+    balance: 0,
+    country: 'egypt',
+    payments: [],
+    createdAt: '2022-11-01T08:00:00Z',
+    createdBy: 'admin',
+    updatedAt: '2022-11-01T08:00:00Z'
+  }
+];
+
+// Default Employees Data - Libya
+const defaultLibyaEmployees = [
+  {
+    id: 'ly-emp-1',
+    name: 'عبدالله الليبي',
+    email: 'abdullah@helaly.ly',
+    phone: '+218123456001',
+    employeeType: 'monthly',
+    position: 'مدير مشروع',
+    monthlySalary: 5000,
+    dailyRate: 0,
+    currency: 'USD',
+    hireDate: '2023-05-01',
+    notes: 'مدير مشروع رئيسي',
+    projectId: 'ly-1',
+    sectionId: 'ly-s-1',
+    active: true,
+    totalEarned: 45000,
+    totalPaid: 40000,
+    balance: 5000,
+    country: 'libya',
+    payments: [],
+    createdAt: '2023-05-01T08:00:00Z',
+    createdBy: 'admin',
+    updatedAt: '2023-05-01T08:00:00Z'
+  },
+  {
+    id: 'ly-emp-2',
+    name: 'فاطمة السراج',
+    email: 'fatima@helaly.ly',
+    phone: '+218123456002',
+    employeeType: 'monthly',
+    position: 'مهندسة مدنية',
+    monthlySalary: 4000,
+    dailyRate: 0,
+    currency: 'USD',
+    hireDate: '2023-07-15',
+    notes: 'مهندسة مدنية متخصصة في الطرق',
+    projectId: 'ly-2',
+    sectionId: 'ly-s-3',
+    active: true,
+    totalEarned: 28000,
+    totalPaid: 28000,
+    balance: 0,
+    country: 'libya',
+    payments: [],
+    createdAt: '2023-07-15T08:00:00Z'
+  },
+  {
+    id: 'ly-emp-3',
+    name: 'محمد التركي',
+    email: 'turkii@helaly.ly',
+    phone: '+218123456003',
+    employeeType: 'daily',
+    position: 'مشرف عمال',
+    monthlySalary: 0,
+    dailyRate: 150,
+    currency: 'USD',
+    hireDate: '2023-08-01',
+    notes: 'مشرف عمال ذو خبرة',
+    projectId: 'ly-2',
+    sectionId: 'ly-s-3',
+    active: true,
+    totalEarned: 15000,
+    totalPaid: 12000,
+    balance: 3000,
+    country: 'libya',
+    payments: [],
+    createdAt: '2023-08-01T08:00:00Z'
+  }
+];
+
+// Load employees from localStorage or use defaults
+let egyptEmployees = loadFromStorage('helaly_egypt_employees', defaultEgyptEmployees);
+let libyaEmployees = loadFromStorage('helaly_libya_employees', defaultLibyaEmployees);
+
+// Helper function to get employees by country
+const getEmployeesByCountry = (country: 'egypt' | 'libya') => {
+  const freshEgyptEmployees = loadFromStorage('helaly_egypt_employees', defaultEgyptEmployees);
+  const freshLibyaEmployees = loadFromStorage('helaly_libya_employees', defaultLibyaEmployees);
+  return country === 'egypt' ? freshEgyptEmployees : freshLibyaEmployees;
+};
+
+export const mockGetEmployees = async (country: 'egypt' | 'libya') => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  const employees = getEmployeesByCountry(country);
+  console.log(`🔄 mockGetEmployees: Found ${employees.length} employees for ${country}`);
+  return employees;
+};
+
+export const mockGetEmployeeById = async (country: 'egypt' | 'libya', id: string) => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const employees = getEmployeesByCountry(country);
+  const employee = employees.find((e: any) => e.id === id);
+  if (!employee) throw new Error('Employee not found');
+  return employee;
+};
+
+export const mockCreateEmployee = async (country: 'egypt' | 'libya', employeeData: any) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const newEmployee = {
+    ...employeeData,
+    id: uuidv4(),
+    country,
+    active: true,
+    totalEarned: 0,
+    totalPaid: 0,
+    balance: 0,
+    payments: [],
+    createdAt: new Date().toISOString()
+  };
+
+  if (country === 'egypt') {
+    egyptEmployees = [...egyptEmployees, newEmployee];
+    saveToStorage('helaly_egypt_employees', egyptEmployees);
+  } else {
+    libyaEmployees = [...libyaEmployees, newEmployee];
+    saveToStorage('helaly_libya_employees', libyaEmployees);
+  }
+
+  console.log(`✅ Employee created for ${country}: ${newEmployee.name}`);
+  return newEmployee;
+};
+
+export const mockUpdateEmployee = async (country: 'egypt' | 'libya', id: string, employeeData: any) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  if (country === 'egypt') {
+    const index = egyptEmployees.findIndex((e: any) => e.id === id);
+    if (index === -1) throw new Error('Employee not found');
+    egyptEmployees[index] = { ...egyptEmployees[index], ...employeeData };
+    saveToStorage('helaly_egypt_employees', egyptEmployees);
+    return egyptEmployees[index];
+  } else {
+    const index = libyaEmployees.findIndex((e: any) => e.id === id);
+    if (index === -1) throw new Error('Employee not found');
+    libyaEmployees[index] = { ...libyaEmployees[index], ...employeeData };
+    saveToStorage('helaly_libya_employees', libyaEmployees);
+    return libyaEmployees[index];
+  }
+};
+
+export const mockDeleteEmployee = async (country: 'egypt' | 'libya', id: string) => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  if (country === 'egypt') {
+    egyptEmployees = egyptEmployees.filter((e: any) => e.id !== id);
+    saveToStorage('helaly_egypt_employees', egyptEmployees);
+  } else {
+    libyaEmployees = libyaEmployees.filter((e: any) => e.id !== id);
+    saveToStorage('helaly_libya_employees', libyaEmployees);
+  }
+
+  console.log(`✅ Employee ${id} deleted from ${country}`);
+  return { success: true };
+};
+
+export const mockGetEmployeeStats = async (country: 'egypt' | 'libya') => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const employees = getEmployeesByCountry(country);
+
+  const totalEmployees = employees.length;
+  const activeEmployees = employees.filter((e: any) => e.active).length;
+  const monthlyEmployees = employees.filter((e: any) => e.employeeType === 'monthly').length;
+  const dailyEmployees = employees.filter((e: any) => e.employeeType === 'daily').length;
+  const totalMonthlySalary = employees
+    .filter((e: any) => e.employeeType === 'monthly')
+    .reduce((sum: number, e: any) => sum + (e.monthlySalary || 0), 0);
+
+  return {
+    totalEmployees,
+    activeEmployees,
+    monthlyEmployees,
+    dailyEmployees,
+    totalMonthlySalary
+  };
+};
+
+// --- Payments ---
+
+// Default Payments Data - Egypt
+const defaultEgyptPayments = [
+  {
+    id: 'eg-pay-1',
+    employeeId: 'eg-emp-1',
+    employeeName: 'أحمد محمد علي',
+    paymentType: 'salary',
+    amount: 15000,
+    currency: 'EGP',
+    amountEGP: 15000,
+    amountUSD: 0,
+    paymentMethod: 'bank_transfer',
+    receiptNumber: 'REC-EG-001',
+    description: 'راتب شهر يناير 2024',
+    paymentDate: '2024-01-31',
+    projectId: 'eg-1',
+    projectName: 'طريق القاهرة - الإسكندرية الصحراوي',
+    sectionId: 'eg-s-1',
+    approvedBy: 'مدير مصر',
+    country: 'egypt',
+    createdAt: '2024-01-31T10:00:00Z'
+  },
+  {
+    id: 'eg-pay-2',
+    employeeId: 'eg-emp-2',
+    employeeName: 'سارة أحمد حسن',
+    paymentType: 'salary',
+    amount: 12000,
+    currency: 'EGP',
+    amountEGP: 12000,
+    amountUSD: 0,
+    paymentMethod: 'bank_transfer',
+    receiptNumber: 'REC-EG-002',
+    description: 'راتب شهر يناير 2024',
+    paymentDate: '2024-01-31',
+    projectId: 'eg-2',
+    projectName: 'طريق الساحل الشمالي الجديد',
+    sectionId: 'eg-s-3',
+    approvedBy: 'مدير مصر',
+    country: 'egypt',
+    createdAt: '2024-01-31T10:00:00Z'
+  },
+  {
+    id: 'eg-pay-3',
+    employeeId: 'eg-emp-1',
+    employeeName: 'أحمد محمد علي',
+    paymentType: 'advance',
+    amount: 5000,
+    currency: 'EGP',
+    amountEGP: 5000,
+    amountUSD: 0,
+    paymentMethod: 'cash',
+    receiptNumber: 'REC-EG-003',
+    description: 'سلفة طارئة',
+    paymentDate: '2024-01-15',
+    projectId: 'eg-1',
+    projectName: 'طريق القاهرة - الإسكندرية الصحراوي',
+    sectionId: 'eg-s-1',
+    approvedBy: 'مدير مصر',
+    country: 'egypt',
+    createdAt: '2024-01-15T10:00:00Z'
+  },
+  {
+    id: 'eg-pay-4',
+    employeeId: 'eg-emp-3',
+    employeeName: 'محمد عبدالرحمن',
+    paymentType: 'daily',
+    amount: 3000,
+    currency: 'EGP',
+    amountEGP: 3000,
+    amountUSD: 0,
+    paymentMethod: 'cash',
+    receiptNumber: 'REC-EG-004',
+    description: 'أجر 10 أيام عمل',
+    paymentDate: '2024-01-20',
+    workQuantity: 10,
+    workUnit: 'day',
+    projectId: 'eg-1',
+    projectName: 'طريق القاهرة - الإسكندرية الصحراوي',
+    sectionId: 'eg-s-2',
+    approvedBy: 'مدير مصر',
+    country: 'egypt',
+    createdAt: '2024-01-20T10:00:00Z'
+  }
+];
+
+// Default Payments Data - Libya
+const defaultLibyaPayments = [
+  {
+    id: 'ly-pay-1',
+    employeeId: 'ly-emp-1',
+    employeeName: 'عبدالله الليبي',
+    paymentType: 'salary',
+    amount: 5000,
+    currency: 'USD',
+    amountEGP: 0,
+    amountUSD: 5000,
+    paymentMethod: 'bank_transfer',
+    receiptNumber: 'REC-LY-001',
+    description: 'راتب شهر يناير 2024',
+    paymentDate: '2024-01-31',
+    projectId: 'ly-1',
+    projectName: 'طريق طرابلس - بنغازي الساحلي',
+    sectionId: 'ly-s-1',
+    approvedBy: 'مدير ليبيا',
+    country: 'libya',
+    createdAt: '2024-01-31T10:00:00Z'
+  },
+  {
+    id: 'ly-pay-2',
+    employeeId: 'ly-emp-2',
+    employeeName: 'فاطمة السراج',
+    paymentType: 'salary',
+    amount: 4000,
+    currency: 'USD',
+    amountEGP: 0,
+    amountUSD: 4000,
+    paymentMethod: 'bank_transfer',
+    receiptNumber: 'REC-LY-002',
+    description: 'راتب شهر يناير 2024',
+    paymentDate: '2024-01-31',
+    projectId: 'ly-2',
+    projectName: 'طريق سبها - الكفرة الصحراوي',
+    sectionId: 'ly-s-3',
+    approvedBy: 'مدير ليبيا',
+    country: 'libya',
+    createdAt: '2024-01-31T10:00:00Z'
+  },
+  {
+    id: 'ly-pay-3',
+    employeeId: 'ly-emp-3',
+    employeeName: 'محمد التركي',
+    paymentType: 'daily',
+    amount: 1500,
+    currency: 'USD',
+    amountEGP: 0,
+    amountUSD: 1500,
+    paymentMethod: 'cash',
+    receiptNumber: 'REC-LY-003',
+    description: 'أجر 10 أيام عمل',
+    paymentDate: '2024-01-20',
+    workQuantity: 10,
+    workUnit: 'day',
+    projectId: 'ly-2',
+    projectName: 'طريق سبها - الكفرة الصحراوي',
+    sectionId: 'ly-s-3',
+    approvedBy: 'مدير ليبيا',
+    country: 'libya',
+    createdAt: '2024-01-20T10:00:00Z'
+  }
+];
+
+// Load payments from localStorage or use defaults
+let egyptPayments = loadFromStorage('helaly_egypt_payments', defaultEgyptPayments);
+let libyaPayments = loadFromStorage('helaly_libya_payments', defaultLibyaPayments);
+
+// Helper function to get payments by country
+const getPaymentsByCountry = (country: 'egypt' | 'libya') => {
+  const freshEgyptPayments = loadFromStorage('helaly_egypt_payments', defaultEgyptPayments);
+  const freshLibyaPayments = loadFromStorage('helaly_libya_payments', defaultLibyaPayments);
+  return country === 'egypt' ? freshEgyptPayments : freshLibyaPayments;
+};
+
+export const mockGetPayments = async (country: 'egypt' | 'libya') => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  const payments = getPaymentsByCountry(country);
+  console.log(`🔄 mockGetPayments: Found ${payments.length} payments for ${country}`);
+  return payments;
+};
+
+export const mockCreatePayment = async (country: 'egypt' | 'libya', paymentData: any) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Get employee name
+  const employees = getEmployeesByCountry(country);
+  const employee = employees.find((e: any) => e.id === paymentData.employeeId);
+
+  const newPayment = {
+    ...paymentData,
+    id: uuidv4(),
+    employeeName: employee?.name || 'Unknown',
+    country,
+    createdAt: new Date().toISOString()
+  };
+
+  if (country === 'egypt') {
+    egyptPayments = [...egyptPayments, newPayment];
+    saveToStorage('helaly_egypt_payments', egyptPayments);
+  } else {
+    libyaPayments = [...libyaPayments, newPayment];
+    saveToStorage('helaly_libya_payments', libyaPayments);
+  }
+
+  console.log(`✅ Payment created for ${country}: ${newPayment.amount} ${newPayment.currency}`);
+  return newPayment;
+};
+
+export const mockUpdatePayment = async (country: 'egypt' | 'libya', id: string, paymentData: any) => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  if (country === 'egypt') {
+    const index = egyptPayments.findIndex((p: any) => p.id === id);
+    if (index === -1) throw new Error('Payment not found');
+    egyptPayments[index] = { ...egyptPayments[index], ...paymentData };
+    saveToStorage('helaly_egypt_payments', egyptPayments);
+    return egyptPayments[index];
+  } else {
+    const index = libyaPayments.findIndex((p: any) => p.id === id);
+    if (index === -1) throw new Error('Payment not found');
+    libyaPayments[index] = { ...libyaPayments[index], ...paymentData };
+    saveToStorage('helaly_libya_payments', libyaPayments);
+    return libyaPayments[index];
+  }
+};
+
+export const mockDeletePayment = async (country: 'egypt' | 'libya', id: string) => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  if (country === 'egypt') {
+    egyptPayments = egyptPayments.filter((p: any) => p.id !== id);
+    saveToStorage('helaly_egypt_payments', egyptPayments);
+  } else {
+    libyaPayments = libyaPayments.filter((p: any) => p.id !== id);
+    saveToStorage('helaly_libya_payments', libyaPayments);
+  }
+
+  console.log(`✅ Payment ${id} deleted from ${country}`);
+  return { success: true };
+};
+
+export const mockGetPaymentStats = async (country: 'egypt' | 'libya') => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+  const payments = getPaymentsByCountry(country);
+
+  const totalPayments = payments.length;
+  const totalAmountEGP = payments.reduce((sum: number, p: any) => sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0) || 0), 0);
+  const totalAmountUSD = payments.reduce((sum: number, p: any) => sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0) || 0), 0);
+  const salaryPayments = payments.filter((p: any) => p.paymentType === 'salary').length;
+  const advancePayments = payments.filter((p: any) => p.paymentType === 'advance').length;
+  const loanPayments = payments.filter((p: any) => p.paymentType === 'loan').length;
+  const dailyPayments = payments.filter((p: any) => p.paymentType === 'daily').length;
+
+  return {
+    totalPayments,
+    totalAmountEGP,
+    totalAmountUSD,
+    salaryPayments,
+    advancePayments,
+    loanPayments,
+    dailyPayments
+  };
 };
 
 // --- Users ---
@@ -1261,7 +1797,7 @@ export const mockDeleteSpending = async (id: string) => {
 export const mockGetUsers = async () => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   return users.map(user => {
     const { password, ...userData } = user;
     return userData;
@@ -1271,19 +1807,19 @@ export const mockGetUsers = async () => {
 export const mockCreateUser = async (userData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   const newUser = {
     id: uuidv4(),
     ...userData,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
-  
+
   users.push(newUser);
-  
+
   // Save users to localStorage
   saveToStorage('helaly_users', users);
-  
+
   // Return user data without password
   const { password, ...newUserData } = newUser;
   return newUserData;
@@ -1292,22 +1828,22 @@ export const mockCreateUser = async (userData: any) => {
 export const mockUpdateUser = async (id: string, userData: any) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 400));
-  
+
   const index = users.findIndex(u => u.id === id);
-  
+
   if (index === -1) {
     throw new Error('User not found');
   }
-  
+
   // Do not allow updating the first admin user (essential for login)
   if (id === '1' && users[index].role === 'admin') {
     // Allow updating some fields but not critical ones
-    const safeUpdate = { 
-      name: userData.name, 
+    const safeUpdate = {
+      name: userData.name,
       position: userData.position,
       updatedAt: new Date().toISOString()
     };
-    
+
     users[index] = {
       ...users[index],
       ...safeUpdate
@@ -1320,7 +1856,7 @@ export const mockUpdateUser = async (id: string, userData: any) => {
       updatedAt: new Date().toISOString()
     };
   }
-  
+
   // Return user data without password
   const { password, ...updatedUserData } = users[index];
   return updatedUserData;
@@ -1329,21 +1865,21 @@ export const mockUpdateUser = async (id: string, userData: any) => {
 export const mockDeleteUser = async (id: string) => {
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   const index = users.findIndex(u => u.id === id);
-  
+
   if (index === -1) {
     throw new Error('User not found');
   }
-  
+
   // Do not allow deleting the first admin user (essential for login)
   if (id === '1') {
     throw new Error('Cannot delete system admin user');
   }
-  
+
   // Delete user
   users = users.filter(u => u.id !== id);
-  
+
   return { success: true };
 };
 
@@ -1357,7 +1893,7 @@ export const mockGetDashboardData = async (timeRange: string) => {
 
   // Get user's country and get fresh data from localStorage
   const userCountry = getUserCountryFromToken();
-  
+
   // Load fresh data from localStorage (this ensures we get the latest data)
   const freshEgyptProjects = loadFromStorage('helaly_egypt_projects', defaultEgyptProjects);
   const freshLibyaProjects = loadFromStorage('helaly_libya_projects', defaultLibyaProjects);
@@ -1394,14 +1930,14 @@ export const mockGetDashboardData = async (timeRange: string) => {
   for (let i = 0; i < 6; i++) {
     const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-    
+
     const monthSpending = countrySpendings
       .filter(s => {
         const spendingDate = new Date(s.date);
         return spendingDate >= monthStart && spendingDate <= monthEnd;
       })
       .reduce((sum, s) => sum + (s.amount || 0), 0);
-    
+
     monthlyTrend[5 - i] = monthSpending;
   }
 
@@ -1631,7 +2167,7 @@ export const mockGetReportData = async (reportType: string, dateRange: string) =
       // Create monthly data for the date range
       const monthlyData = [];
       const monthLabels = [];
-      
+
       if (dateRange === 'year') {
         // For yearly data, show all 12 months of that year
         for (let i = 0; i < 12; i++) {
@@ -1643,7 +2179,7 @@ export const mockGetReportData = async (reportType: string, dateRange: string) =
               return spendingDate >= monthStart && spendingDate <= monthEnd;
             })
             .reduce((sum, s) => sum + (s.amount || 0), 0);
-          
+
           monthlyData.push(monthlySpending);
           monthLabels.push(new Date(startDate.getFullYear(), i, 1).toLocaleString('default', { month: 'short' }));
         }
@@ -1658,7 +2194,7 @@ export const mockGetReportData = async (reportType: string, dateRange: string) =
               return spendingDate >= monthStart && spendingDate <= monthEnd;
             })
             .reduce((sum, s) => sum + (s.amount || 0), 0);
-          
+
           monthlyData.push(monthlySpending);
           monthLabels.push(monthStart.toLocaleString('default', { month: 'short' }));
         }
@@ -1674,7 +2210,7 @@ export const mockGetReportData = async (reportType: string, dateRange: string) =
               return spendingDate >= dayStart && spendingDate < dayEnd;
             })
             .reduce((sum, s) => sum + (s.amount || 0), 0);
-          
+
           monthlyData.push(dailySpending);
           monthLabels.push(`Day ${i}`);
         }
@@ -1701,17 +2237,17 @@ export const mockGetReportData = async (reportType: string, dateRange: string) =
       const progressDatasets = filteredProjects.map((project, index) => {
         const colors = ['#3B82F6', '#10B981', '#F97316', '#8B5CF6', '#06B6D4', '#EAB308'];
         const color = colors[index % colors.length];
-        
+
         // Generate mock progress data over time
         const progressData = [];
         const currentProgress = project.progress || 0;
-        
+
         // Generate 12 data points showing progress over time
         for (let i = 0; i < 12; i++) {
           const progressPoint = Math.min(currentProgress, (currentProgress / 12) * (i + 1));
           progressData.push(Math.round(progressPoint));
         }
-        
+
         return {
           label: project.name,
           data: progressData,
@@ -1721,7 +2257,7 @@ export const mockGetReportData = async (reportType: string, dateRange: string) =
         };
       });
 
-      const avgProgress = filteredProjects.length ? 
+      const avgProgress = filteredProjects.length ?
         filteredProjects.reduce((sum, p) => sum + (p.progress || 0), 0) / filteredProjects.length : 0;
       const completedCount = filteredProjects.filter(p => (p.progress || 0) >= 100).length;
       const inProgressCount = filteredProjects.filter(p => (p.progress || 0) > 0 && (p.progress || 0) < 100).length;
