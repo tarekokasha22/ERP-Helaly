@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-
 export interface Project {
   _id: string;
   name: string;
@@ -113,8 +112,6 @@ class JSONStorage {
     this.ensureDataDir();
     this.loadData();
   }
-
-
 
   private ensureDataDir() {
     if (!fs.existsSync(this.dataDir)) {
@@ -506,6 +503,8 @@ class JSONStorage {
   }
 
   async updateEmployee(id: string, updateData: Partial<Employee>): Promise<Employee | null> {
+    // If updateData contains country, use it. Otherwise, we MUST know the country.
+    // For now, let's assume the controller finds the employee first or passes the country.
     const country = updateData.country;
 
     if (!country || !this.employees[country]) return null;

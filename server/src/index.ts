@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-
 import authRoutes from './routes/auth.routes';
 import projectRoutes from './routes/project.routes';
 import sectionRoutes from './routes/section.routes';
@@ -134,10 +133,7 @@ app.use('*', (req, res) => {
   });
 });
 
-// Database connection function
-
-
-// Initialize storage and start server (Local Development)
+// Initialize storage and start server
 const startServer = async () => {
   try {
     // Initialize JSON storage
@@ -147,8 +143,6 @@ const startServer = async () => {
     await seedDatabase();
     console.log('🌱 Database seeded successfully');
 
-
-
     // Start the server
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
@@ -156,6 +150,19 @@ const startServer = async () => {
       console.log(`📁 Data directory: ${dataDir}`);
       console.log(`🔗 CORS origin: ${CORS_ORIGIN}`);
       console.log(`📋 API endpoints available at http://localhost:${PORT}/api`);
+
+      // Log registered routes for debugging
+      console.log('🛣️  Registered Routes:');
+      app._router.stack.forEach((r: any) => {
+        if (r.route && r.route.path) {
+          console.log(`   ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${r.route.path}`);
+        } else if (r.name === 'router') {
+          // Inner router
+          const regex = r.regexp.toString();
+          const cleanPath = regex.replace(/^\/\^\\/, '').replace(/\\\/\?\(\?=\\\/\|\$\)\/i$/, '');
+          console.log(`   ROUTER ${cleanPath}`);
+        }
+      });
     });
   } catch (error) {
     console.error('💥 Failed to start server:', error);
@@ -163,10 +170,4 @@ const startServer = async () => {
   }
 };
 
-// Only start server immediately if run directly
-if (require.main === module) {
-  startServer();
-}
-
-// Export for Vercel
-export default app; 
+startServer(); 
