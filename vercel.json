@@ -1,8 +1,8 @@
 {
     "version": 2,
-    "buildCommand": "cd client && npm ci --legacy-peer-deps && CI=false npm run build",
+    "buildCommand": "cd client && npm install --legacy-peer-deps && CI=false npm run build",
     "outputDirectory": "client/build",
-    "installCommand": "echo 'Skipping root install'",
+    "installCommand": "echo 'Install happens in buildCommand'",
     "rewrites": [
         {
             "source": "/(.*)",
