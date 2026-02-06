@@ -13,7 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 
 // Flag to use mock API for development
-const USE_MOCK_API = false;
+const USE_MOCK_API = true;
 
 type User = {
   id: string;

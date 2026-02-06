@@ -27,7 +27,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 // Flag to use mock API for development
-const USE_MOCK_API = false;
+const USE_MOCK_API = true;
 
 // Register ChartJS components
 ChartJS.register(

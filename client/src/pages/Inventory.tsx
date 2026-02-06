@@ -8,7 +8,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { toast } from 'react-toastify';
 
 // Flag to use mock API
-const USE_MOCK_API = false;
+const USE_MOCK_API = true;
 
 type InventoryItem = {
   id: string;

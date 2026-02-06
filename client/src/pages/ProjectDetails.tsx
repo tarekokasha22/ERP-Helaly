@@ -16,7 +16,7 @@ import { toast } from 'react-toastify';
 import useDashboardState from '../hooks/useDashboardState';
 
 // Flag to use mock API for development
-const USE_MOCK_API = false;
+const USE_MOCK_API = true;
 
 type Section = {
   id: string;
