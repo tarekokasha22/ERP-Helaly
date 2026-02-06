@@ -7,47 +7,84 @@ import realApi from './api';
 
 const USE_MOCK_API = process.env.REACT_APP_USE_MOCK_API === 'true';
 
-console.log(`🔧 API: ${USE_MOCK_API ? 'MOCK (client)' : 'REAL (server)'}`)
+console.log(`🔧 API: ${USE_MOCK_API ? 'MOCK (client)' : 'REAL (server)'}`);
+
+const safeGetSessionStorage = (key: string): string | null => {
+    try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+            return sessionStorage.getItem(key);
+        }
+    } catch (e) {
+        console.warn('SessionStorage access failed', e);
+    }
+    return null;
+};
 
 // Helper to get country from sessionStorage
 const getCountry = (): 'egypt' | 'libya' => {
-    const country = sessionStorage.getItem('selectedCountry');
+    const country = safeGetSessionStorage('selectedCountry');
     return (country as 'egypt' | 'libya') || 'egypt';
 };
 
 // Mock API adapter that mimics realApi interface
 const mockApiAdapter = {
     async get(url: string, config?: any) {
-        const path = url.replace(/^\//, '');
-        const country = getCountry();
+        try {
+            const path = url.replace(/^\//, '');
+            const country = getCountry();
 
-        if (path === 'health') return { data: { status: 'ok' } };
-        if (path === 'auth/me') return { data: await mockApi.mockGetUserProfile(sessionStorage.getItem('token') || '') };
-        if (path === 'projects') return { data: await mockApi.mockGetProjects() };
-        if (path.startsWith('projects/')) return { data: await mockApi.mockGetProjectById(path.split('/')[1]) };
-        if (path === 'sections') return { data: await mockApi.mockGetSections() };
-        if (path.startsWith('sections/')) return { data: await mockApi.mockGetSectionById(path.split('/')[1]) };
-        if (path === 'employees') return { data: await mockApi.mockGetEmployees(country) };
-        if (path.startsWith('employees/')) {
-            const id = path.split('/')[1];
-            const employees = await mockApi.mockGetEmployees(country);
-            const emp = employees.find((e: any) => e.id === id);
-            if (!emp) throw new Error('Employee not found');
-            return { data: emp };
-        }
-        if (path === 'payments') return { data: await mockApi.mockGetPayments(country) };
-        if (path.startsWith('payments/')) {
-            const id = path.split('/')[1];
-            const payments = await mockApi.mockGetPayments(country);
-            const pay = payments.find((p: any) => p.id === id);
-            if (!pay) throw new Error('Payment not found');
-            return { data: pay };
-        }
-        if (path === 'users') return { data: await mockApi.mockGetUsers() };
-        if (path.startsWith('reports/')) return { data: await mockApi.mockGetReportData(path.split('/')[1], config?.params || {}) };
+            if (path === 'health') return { data: { status: 'ok' } };
+            if (path === 'auth/me') return { data: await mockApi.mockGetUserProfile(safeGetSessionStorage('token') || '') };
+            if (path === 'projects') return { data: await mockApi.mockGetProjects() };
+            if (path.startsWith('projects/')) return { data: await mockApi.mockGetProjectById(path.split('/')[1]) };
+            if (path === 'sections') return { data: await mockApi.mockGetSections() };
+            if (path.startsWith('sections/')) return { data: await mockApi.mockGetSectionById(path.split('/')[1]) };
 
-        throw new Error(`Mock API GET ${url} not implemented`);
+            // Critical Resources with additional safety
+            if (path === 'employees') {
+                try {
+                    const data = await mockApi.mockGetEmployees(country);
+                    return { data: Array.isArray(data) ? data : [] };
+                } catch (err) {
+                    console.error('Error fetching employees mock:', err);
+                    return { data: [] }; // Fallback to empty array
+                }
+            }
+            if (path.startsWith('employees/')) {
+                const id = path.split('/')[1];
+                const employees = await mockApi.mockGetEmployees(country);
+                const emp = employees.find((e: any) => e.id === id);
+                if (!emp) throw new Error('Employee not found');
+                return { data: emp };
+            }
+
+            if (path === 'payments') {
+                try {
+                    const data = await mockApi.mockGetPayments(country);
+                    return { data: Array.isArray(data) ? data : [] };
+                } catch (err) {
+                    console.error('Error fetching payments mock:', err);
+                    return { data: [] }; // Fallback to empty array
+                }
+            }
+            if (path.startsWith('payments/')) {
+                const id = path.split('/')[1];
+                const payments = await mockApi.mockGetPayments(country);
+                const pay = payments.find((p: any) => p.id === id);
+                if (!pay) throw new Error('Payment not found');
+                return { data: pay };
+            }
+
+            if (path === 'users') return { data: await mockApi.mockGetUsers() };
+            if (path.startsWith('reports/')) return { data: await mockApi.mockGetReportData(path.split('/')[1], config?.params || {}) };
+
+            throw new Error(`Mock API GET ${url} not implemented`);
+        } catch (error) {
+            console.error(`Mock API Error (GET ${url}):`, error);
+            throw error; // Re-throw to be handled by caller
+        }
     },
+
 
     async post(url: string, data?: any) {
         const path = url.replace(/^\//, '');
