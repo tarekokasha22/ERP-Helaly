@@ -1,38 +1,12 @@
 {
     "version": 2,
-    "builds": [
+    "buildCommand": "cd client && npm ci --legacy-peer-deps && CI=false npm run build",
+    "outputDirectory": "client/build",
+    "installCommand": "echo 'Skipping root install'",
+    "rewrites": [
         {
-            "src": "client/package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "build"
-            }
-        }
-    ],
-    "routes": [
-        {
-            "src": "/static/(.*)",
-            "dest": "/client/build/static/$1"
-        },
-        {
-            "src": "/favicon.ico",
-            "dest": "/client/build/favicon.ico"
-        },
-        {
-            "src": "/manifest.json",
-            "dest": "/client/build/manifest.json"
-        },
-        {
-            "src": "/logo.png",
-            "dest": "/client/build/logo.png"
-        },
-        {
-            "src": "/logo2.webp",
-            "dest": "/client/build/logo2.webp"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/client/build/index.html"
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }

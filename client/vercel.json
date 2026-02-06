@@ -1,0 +1,12 @@
+{
+    "buildCommand": "CI=false npm run build",
+    "outputDirectory": "build",
+    "installCommand": "npm ci --legacy-peer-deps",
+    "framework": null,
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
