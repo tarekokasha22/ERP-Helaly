@@ -2,7 +2,7 @@
     "version": 2,
     "buildCommand": "npm --prefix client install && npm --prefix client run build",
     "outputDirectory": "client/build",
-    "installCommand": "npm install",
+    "installCommand": "echo 'Skipping root install - using client only'",
     "framework": null,
     "routes": [
         {
