@@ -63,6 +63,16 @@ export const clearAllStoredData = () => {
   });
 };
 
+// Initialize default data on first app load (actual init happens later)
+const shouldInitialize = () => {
+  return !localStorage.getItem('helaly_data_initialized');
+};
+
+const markAsInitialized = () => {
+  localStorage.setItem('helaly_data_initialized', 'true');
+  localStorage.setItem('helaly_data_initialized_date', new Date().toISOString());
+};
+
 // ============= DEFAULT DATA =============
 
 // Default Users Data
@@ -1537,6 +1547,7 @@ export const mockGetEmployeeStats = async (country: 'egypt' | 'libya') => {
   };
 };
 
+
 // --- Payments ---
 
 // Default Payments Data - Egypt
@@ -1694,6 +1705,41 @@ const defaultLibyaPayments = [
 // Load payments from localStorage or use defaults
 let egyptPayments = loadFromStorage('helaly_egypt_payments', defaultEgyptPayments);
 let libyaPayments = loadFromStorage('helaly_libya_payments', defaultLibyaPayments);
+
+// ============= INITIALIZE DEFAULT DATA ON FIRST LOAD =============
+// This runs after all defaults are defined
+if (shouldInitialize()) {
+  console.log('🎉 First time loading Helaly ERP! Initializing default data...');
+
+  // Save all default datasets to localStorage
+  const datasetsToInit = [
+    { key: 'helaly_users', data: defaultUsers },
+    { key: 'helaly_egypt_projects', data: defaultEgyptProjects },
+    { key: 'helaly_libya_projects', data: defaultLibyaProjects },
+    { key: 'helaly_egypt_sections', data: defaultEgyptSections },
+    { key: 'helaly_libya_sections', data: defaultLibyaSections },
+    { key: 'helaly_egypt_spendings', data: defaultEgyptSpendings },
+    { key: 'helaly_libya_spendings', data: defaultLibyaSpendings },
+    { key: 'helaly_egypt_employees', data: defaultEgyptEmployees },
+    { key: 'helaly_libya_employees', data: defaultLibyaEmployees },
+    { key: 'helaly_egypt_payments', data: defaultEgyptPayments },
+    { key: 'helaly_libya_payments', data: defaultLibyaPayments },
+  ];
+
+  datasetsToInit.forEach(({ key, data }) => {
+    const existing = localStorage.getItem(key);
+    if (!existing) {
+      saveToStorage(key, data);
+      console.log(`  ✓ Initialized ${key} with ${Array.isArray(data) ? data.length : 'default'} items`);
+    }
+  });
+
+  // Mark as initialized
+  markAsInitialized();
+  console.log('✅ Default data initialization complete!');
+} else {
+  console.log('✓ App already initialized, using existing localStorage data');
+}
 
 // Helper function to get payments by country
 const getPaymentsByCountry = (country: 'egypt' | 'libya') => {
