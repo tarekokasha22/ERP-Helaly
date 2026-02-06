@@ -1,4 +1,6 @@
 import axios, { AxiosResponse, AxiosRequestConfig } from 'axios';
+// CRITICAL FIX: Add Mock API redirection for Vercel deployment
+import * as mockApi from './mockApi';
 
 // API Configuration: في التطوير استخدم /api (يُوجّه عبر proxy للسيرفر). تأكد تشغيل السيرفر أولاً.
 const API_URL = process.env.REACT_APP_API_URL || '/api';
@@ -79,8 +81,6 @@ axiosInstance.interceptors.response.use(
 );
 
 // Enhanced API service with better typing and error handling
-// CRITICAL FIX: Add Mock API redirection for Vercel deployment
-import * as mockApi from './mockApi';
 
 // Check if we should use Mock API (on Vercel or forced)
 // We default to true for Vercel production to fix missing backend issues
