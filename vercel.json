@@ -1,11 +1,10 @@
 {
     "version": 2,
-    "buildCommand": "cd client && npm run build",
+    "buildCommand": "bash vercel-build.sh",
     "outputDirectory": "client/build",
     "installCommand": "cd client && npm install --legacy-peer-deps",
     "env": {
-        "REACT_APP_USE_MOCK": "true",
-        "CI": "false"
+        "REACT_APP_USE_MOCK": "true"
     },
     "rewrites": [
         {
