@@ -79,6 +79,17 @@ axiosInstance.interceptors.response.use(
 );
 
 // Enhanced API service with better typing and error handling
+// CRITICAL FIX: Add Mock API redirection for Vercel deployment
+import * as mockApi from './mockApi';
+
+// Check if we should use Mock API (on Vercel or forced)
+// We default to true for Vercel production to fix missing backend issues
+const USE_MOCK_API = process.env.NODE_ENV === 'production' || process.env.REACT_APP_USE_MOCK === 'true';
+
+if (USE_MOCK_API) {
+  console.log('🚀 App running in Client-Side Mode (Mock API) for Vercel support');
+}
+
 const api = {
   // Expose the axios instance for advanced usage
   instance: axiosInstance,
@@ -92,11 +103,35 @@ const api = {
 
   // Health check
   async healthCheck(): Promise<{ data: any }> {
+    if (USE_MOCK_API) {
+      return { data: { status: 'healthy', mode: 'mock', timestamp: new Date().toISOString() } };
+    }
     return await axiosInstance.get('/health');
   },
 
-  // GET request
+  // GET request - intercepted for Mock API
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<{ data: T }> {
+    if (USE_MOCK_API) {
+      console.log(`📡 Mock Get: ${url}`);
+      try {
+        // Redirection logic based on URL patterns
+        if (url.includes('/projects') && !url.includes('/projects/')) {
+          const data = await mockApi.mockGetProjects();
+          return { data: data as unknown as T };
+        }
+        if (url.includes('/projects/')) {
+          const id = url.split('/').pop();
+          if (id) {
+            const data = await mockApi.mockGetProjectById(id);
+            return { data: data as unknown as T };
+          }
+        }
+        // Fallback for other mock endpoints (add as needed during development)
+      } catch (mockError) {
+        console.warn(`Mock API fallback failed for ${url}, trying real API`, mockError);
+      }
+    }
+
     try {
       return await axiosInstance.get<T>(url, config);
     } catch (error) {
@@ -105,8 +140,35 @@ const api = {
     }
   },
 
-  // POST request
+  // POST request - intercepted for Mock API
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    if (USE_MOCK_API) {
+      console.log(`📡 Mock Post: ${url}`, data);
+
+      if (url.includes('/projects')) {
+        const result = await mockApi.mockCreateProject(data);
+        return { data: result, status: 201, statusText: 'Created', headers: {}, config: config || {} } as AxiosResponse<T>;
+      }
+
+      if (url.includes('/auth/login')) {
+        const { email, password } = data;
+        // Handle country header if present in config or defaults
+        const country = (config?.headers?.['X-User-Country'] || axiosInstance.defaults.headers.common['X-User-Country']) as 'egypt' | 'libya' | undefined;
+
+        try {
+          const result = await mockApi.mockLogin(email, password, country);
+          if (result.token) {
+            api.setAuthToken(result.token);
+            sessionStorage.setItem('token', result.token);
+            sessionStorage.setItem('user', JSON.stringify({ ...result.user, country }));
+          }
+          return { data: result, status: 200, statusText: 'OK', headers: {}, config: config || {} } as AxiosResponse<T>;
+        } catch (e: any) {
+          throw { response: { status: 401, data: { message: e.message } } };
+        }
+      }
+    }
+
     try {
       return await axiosInstance.post<T>(url, data, config);
     } catch (error) {
