@@ -5,8 +5,18 @@
     "installCommand": "cd client && npm install --legacy-peer-deps",
     "rewrites": [
         {
+            "source": "/api/(.*)",
+            "destination": "/api/index.ts"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }
-    ]
+    ],
+    "functions": {
+        "api/index.ts": {
+            "memory": 1024,
+            "maxDuration": 10
+        }
+    }
 }

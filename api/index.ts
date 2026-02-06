@@ -37,17 +37,21 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Initialize data directory (for Vercel serverless)
-const dataDir = path.join(process.cwd(), 'server', 'data');
+// Vercel only allows writing to /tmp directory
+const isVercel = process.env.VERCEL === '1';
+const dataDir = isVercel ? path.join('/tmp', 'data') : path.join(process.cwd(), 'server', 'data');
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Initialize JSON storage files
 const initializeStorage = () => {
-  const files = ['users.json', 'projects.json', 'sections.json', 'spendings.json'];
+  const files = ['users.json', 'projects.json', 'sections.json', 'spendings.json', 'employees.json', 'payments.json'];
   files.forEach(file => {
     const filePath = path.join(dataDir, file);
     if (!fs.existsSync(filePath)) {
+      console.log(`Creating initial storage file: ${filePath}`);
       fs.writeFileSync(filePath, '[]');
     }
   });
@@ -78,8 +82,8 @@ app.use('/api/ai', aiRoutes);
 
 // Health check route
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'production',
     storage: 'JSON'
@@ -98,17 +102,17 @@ app.get('/', (req: Request, res: Response) => {
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: any) => {
   console.error('❌ Server Error:', err);
-  res.status(500).json({ 
-    success: false, 
+  res.status(500).json({
+    success: false,
     message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
-  res.status(404).json({ 
-    success: false, 
-    message: `Route ${req.originalUrl} not found` 
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.originalUrl} not found`
   });
 });
 
