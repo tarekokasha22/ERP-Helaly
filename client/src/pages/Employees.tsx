@@ -253,7 +253,9 @@ const Employees: React.FC = () => {
     try {
       // Calculate stats from employees data
       const employeesRes = await api.get('employees');
-      const allEmployees = employeesRes.data || [];
+      // CRITICAL FIX: Ensure allEmployees is strictly an array before using .filter()
+      const rawData = employeesRes.data;
+      const allEmployees = Array.isArray(rawData) ? rawData : [];
       const statsData = {
         totalEmployees: allEmployees.length,
         activeEmployees: allEmployees.filter((e: any) => e.active).length,
