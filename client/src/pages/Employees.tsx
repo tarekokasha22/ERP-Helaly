@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCountry } from '../contexts/CountryContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import api from '../services/apiService';
+import { mockGetEmployees, mockGetEmployeeById, mockCreateEmployee, mockUpdateEmployee, mockDeleteEmployee, mockGetEmployeeStats, mockGetProjects, mockGetSections } from '../services/mockApi';
 import { toast } from 'react-toastify';
 import {
   PlusIcon,
@@ -215,14 +215,12 @@ const Employees: React.FC = () => {
   const fetchProjectsAndSections = async () => {
     if (!country) return;
     try {
-      const [projectsRes, sectionsRes] = await Promise.all([
-        api.get('projects'),
-        api.get('sections')
+      const [projectsData, sectionsData] = await Promise.all([
+        mockGetProjects(),
+        mockGetSections()
       ]);
-      const projectsData = projectsRes.data;
-      const sectionsData = sectionsRes.data;
-      setProjects(Array.isArray(projectsData) ? projectsData : []);
-      setSections(Array.isArray(sectionsData) ? sectionsData : []);
+      setProjects(projectsData || []);
+      setSections(sectionsData || []);
     } catch (error) {
       console.error('Error fetching projects/sections:', error);
     }
@@ -235,8 +233,7 @@ const Employees: React.FC = () => {
     }
     try {
       setLoading(true);
-      const res = await api.get('employees');
-      const employeesData = res.data;
+      const employeesData = await mockGetEmployees(country);
       setEmployees((employeesData as any) || []);
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -251,20 +248,7 @@ const Employees: React.FC = () => {
       return;
     }
     try {
-      // Calculate stats from employees data
-      const employeesRes = await api.get('employees');
-      // CRITICAL FIX: Ensure allEmployees is strictly an array before using .filter()
-      const rawData = employeesRes.data;
-      const allEmployees = Array.isArray(rawData) ? rawData : [];
-      const statsData = {
-        totalEmployees: allEmployees.length,
-        activeEmployees: allEmployees.filter((e: any) => e.active).length,
-        monthlyEmployees: allEmployees.filter((e: any) => e.employeeType === 'monthly').length,
-        dailyEmployees: allEmployees.filter((e: any) => e.employeeType === 'daily').length,
-        totalMonthlySalary: allEmployees
-          .filter((e: any) => e.employeeType === 'monthly')
-          .reduce((sum: number, e: any) => sum + (e.monthlySalary || 0), 0)
-      };
+      const statsData = await mockGetEmployeeStats(country);
       setStats(statsData);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -307,10 +291,10 @@ const Employees: React.FC = () => {
       };
 
       if (editingEmployee) {
-        await api.put(`employees/${editingEmployee.id}`, submitData);
+        await mockUpdateEmployee(country, editingEmployee.id, submitData);
         toast.success(t.employeeUpdated);
       } else {
-        await api.post('employees', submitData);
+        await mockCreateEmployee(country, submitData);
         toast.success(t.employeeCreated);
       }
       setShowForm(false);
@@ -353,7 +337,7 @@ const Employees: React.FC = () => {
     if (!country) return;
     if (window.confirm(t.deleteConfirm)) {
       try {
-        await api.delete(`employees/${employee.id}`);
+        await mockDeleteEmployee(country, employee.id);
         toast.success(t.employeeDeleted);
         fetchEmployees();
         fetchStats();
@@ -368,8 +352,7 @@ const Employees: React.FC = () => {
     if (!country) return;
     try {
       // Fetch full employee data with payment history
-      const res = await api.get(`employees/${employee.id}`);
-      const employeeData = res.data;
+      const employeeData = await mockGetEmployeeById(country, employee.id);
       setSelectedEmployee(employeeData as any);
       setShowPaymentHistory(true);
     } catch (error) {

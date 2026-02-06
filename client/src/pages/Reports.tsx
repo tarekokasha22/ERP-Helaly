@@ -27,7 +27,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import api from '../services/apiService';
+import { mockGetProjects, mockGetSections, mockGetSpendings, mockGetEmployees, mockGetPayments } from '../services/mockApi';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useCountry } from '../contexts/CountryContext';
@@ -84,8 +84,7 @@ const Reports: React.FC = () => {
 
   // Fetch real data from API
   const { data: projects = [], isLoading: projectsLoading } = useQuery(['projects'], async () => {
-    const res = await api.get('projects');
-    return Array.isArray(res.data) ? res.data : [];
+    return await mockGetProjects() as any;
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -94,8 +93,7 @@ const Reports: React.FC = () => {
   });
 
   const { data: sections = [], isLoading: sectionsLoading } = useQuery(['sections'], async () => {
-    const res = await api.get('sections');
-    return Array.isArray(res.data) ? res.data : [];
+    return await mockGetSections() as any;
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -104,8 +102,7 @@ const Reports: React.FC = () => {
   });
 
   const { data: spendings = [], isLoading: spendingsLoading } = useQuery(['spendings'], async () => {
-    // Spendings not implemented in apiService yet, return empty
-    return [];
+    return await mockGetSpendings() as any;
   }, {
     staleTime: 1000,
     refetchInterval: reportType === 'financial' ? 5000 : false,
@@ -119,8 +116,7 @@ const Reports: React.FC = () => {
 
   const { data: employees = [], isLoading: employeesLoading } = useQuery(['employees', country], async () => {
     if (!country) return [];
-    const res = await api.get('employees');
-    return Array.isArray(res.data) ? res.data : [];
+    return await mockGetEmployees(country) as any;
   }, {
     enabled: !!country,
     staleTime: 30000,
@@ -130,8 +126,7 @@ const Reports: React.FC = () => {
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery(['payments', country], async () => {
     if (!country) return [];
-    const res = await api.get('payments');
-    return Array.isArray(res.data) ? res.data : [];
+    return await mockGetPayments(country) as any;
   }, {
     enabled: !!country,
     staleTime: 30000,

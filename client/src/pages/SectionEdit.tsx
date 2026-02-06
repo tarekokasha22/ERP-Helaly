@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline';
-import api from '../services/apiService';
+import api from '../services/api';
 import { mockGetSectionById, mockUpdateSection, mockGetProjects } from '../services/mockApi';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
