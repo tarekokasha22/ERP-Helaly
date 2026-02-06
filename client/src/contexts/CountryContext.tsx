@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 type Country = 'egypt' | 'libya';
 
@@ -31,36 +32,32 @@ export const CountryProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [country, setCountryState] = useState<Country | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const { user } = useAuth();
+
   useEffect(() => {
-    // Load country from authenticated user data in sessionStorage
-    const loadCountryFromUser = () => {
-      try {
-        const userData = sessionStorage.getItem('user');
-        if (userData) {
-          const user = JSON.parse(userData);
-          if (user.country && (user.country === 'egypt' || user.country === 'libya')) {
-            setCountryState(user.country);
+    if (user?.country) {
+      setCountryState(user.country);
+      setIsLoading(false);
+    } else {
+      // Fallback to storage if user not yet loaded in context but exists in storage (edge case)
+      const loadCountryFromStorage = () => {
+        try {
+          const userData = sessionStorage.getItem('user');
+          if (userData) {
+            const parsedUser = JSON.parse(userData);
+            if (parsedUser.country) {
+              setCountryState(parsedUser.country);
+            }
           }
+        } catch (e) {
+          console.error('Error loading country from storage:', e);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        console.error('Error parsing user data for country:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCountryFromUser();
-
-    // Listen for storage changes (when user logs in from another tab)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user') {
-        loadCountryFromUser();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+      };
+      loadCountryFromStorage();
+    }
+  }, [user]);
 
   const setCountry = (newCountry: Country) => {
     setCountryState(newCountry);
