@@ -22,7 +22,6 @@
 
 <br/>
 
-![Dashboard Preview](https://raw.githubusercontent.com/tarekokasha22/erp-helaly/main/.github/assets/dashboard-preview.png)
 
 </div>
 
