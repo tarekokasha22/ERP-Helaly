@@ -1,0 +1,122 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+type Country = 'egypt' | 'libya';
+
+type CountryContextType = {
+  country: Country | null;
+  setCountry: (country: Country) => void;
+  selectedCountry: Country | null; // For backward compatibility
+  setSelectedCountry: (country: Country) => void; // For backward compatibility
+  isLoading: boolean;
+  getCountryName: (country: Country) => string;
+  getCountriesOptions: () => { value: Country; label: string; flag: string }[];
+};
+
+const CountryContext = createContext<CountryContextType | undefined>(undefined);
+
+export const useCountry = () => {
+  const context = useContext(CountryContext);
+  if (context === undefined) {
+    throw new Error('useCountry must be used within a CountryProvider');
+  }
+  return context;
+};
+
+const countryMap = {
+  egypt: { name: 'Egypt', flag: '🇪🇬', nameEn: 'Egypt', nameAr: 'Egypt' },
+  libya: { name: 'Libya', flag: '🇱🇾', nameEn: 'Libya', nameAr: 'Libya' },
+};
+
+export const CountryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [country, setCountryState] = useState<Country | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Load country from authenticated user data in sessionStorage
+    const loadCountryFromUser = () => {
+      try {
+        const userData = sessionStorage.getItem('user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          if (user.country && (user.country === 'egypt' || user.country === 'libya')) {
+            setCountryState(user.country);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing user data for country:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCountryFromUser();
+
+    // Listen for storage changes (when user logs in from another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        loadCountryFromUser();
+      }
+    };
+
+    // Listen for same-tab login event (sessionStorage changes don't fire storage events in same tab)
+    const handleAuthLogin = () => {
+      loadCountryFromUser();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('auth:login', handleAuthLogin);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth:login', handleAuthLogin);
+    };
+  }, []);
+
+  const setCountry = (newCountry: Country) => {
+    setCountryState(newCountry);
+
+    // Update user data in sessionStorage if user is logged in
+    try {
+      const userData = sessionStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        user.country = newCountry;
+        sessionStorage.setItem('user', JSON.stringify(user));
+      }
+    } catch (error) {
+      console.error('Error updating user country in sessionStorage:', error);
+    }
+  };
+
+  const getCountryName = (countryCode: Country): string => {
+    return countryMap[countryCode]?.name || countryCode;
+  };
+
+  const getCountriesOptions = () => [
+    {
+      value: 'egypt' as Country,
+      label: countryMap.egypt.name,
+      flag: countryMap.egypt.flag
+    },
+    {
+      value: 'libya' as Country,
+      label: countryMap.libya.name,
+      flag: countryMap.libya.flag
+    },
+  ];
+
+  const value = {
+    country,
+    setCountry,
+    selectedCountry: country, // For backward compatibility
+    setSelectedCountry: setCountry, // For backward compatibility
+    isLoading,
+    getCountryName,
+    getCountriesOptions,
+  };
+
+  return (
+    <CountryContext.Provider value={value}>
+      {children}
+    </CountryContext.Provider>
+  );
+}; 

@@ -1,0 +1,1075 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useCountry } from '../contexts/CountryContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { mockGetPayments, mockCreatePayment, mockUpdatePayment, mockDeletePayment, mockGetPaymentStats, mockGetEmployees, mockGetProjects, mockGetSections } from '../services/mockApi';
+import { toast } from 'react-toastify';
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
+  PencilIcon,
+  TrashIcon,
+  FunnelIcon,
+  ArrowDownTrayIcon,
+  CurrencyDollarIcon,
+} from '@heroicons/react/24/outline';
+
+interface PaymentFormData {
+  employeeId: string;
+  paymentType: 'salary' | 'advance' | 'loan' | 'on_account' | 'daily';
+  amount: number;
+  currency: 'EGP' | 'USD' | 'split';
+  amountEGP?: number;
+  amountUSD?: number;
+  paymentMethod: 'cash' | 'bank_transfer' | 'check' | 'other';
+  receiptNumber: string;
+  description: string;
+  paymentDate: string;
+  projectId: string;
+  sectionId: string;
+  workQuantity: number;
+  workUnit: string;
+  approvedBy: string;
+}
+
+const Payments: React.FC = () => {
+  const { user } = useAuth();
+  const { country } = useCountry();
+  const { language } = useLanguage();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    employeeId: '',
+    paymentType: '',
+    currency: '',
+    projectId: '',
+    startDate: '',
+    endDate: '',
+  });
+  const [formData, setFormData] = useState<PaymentFormData>({
+    employeeId: '',
+    paymentType: 'salary',
+    amount: 0,
+    currency: 'EGP',
+    amountEGP: 0,
+    amountUSD: 0,
+    paymentMethod: 'cash',
+    receiptNumber: '',
+    description: '',
+    paymentDate: new Date().toISOString().split('T')[0],
+    projectId: '',
+    sectionId: '',
+    workQuantity: 0,
+    workUnit: '',
+    approvedBy: user?.name || '',
+  });
+  const [stats, setStats] = useState({
+    totalPayments: 0,
+    totalAmountEGP: 0,
+    totalAmountUSD: 0,
+    salaryPayments: 0,
+    advancePayments: 0,
+    loanPayments: 0,
+    dailyPayments: 0,
+    todayTotal: 0,
+    thisMonthTotal: 0,
+  });
+
+  const translations = {
+    en: {
+      title: 'Payments Management',
+      addPayment: 'Add Payment',
+      editPayment: 'Edit Payment',
+      employee: 'Employee',
+      paymentType: 'Payment Type',
+      salary: 'Salary',
+      advance: 'Advance',
+      loan: 'Custody',
+      onAccount: 'On Account',
+      daily: 'Daily Work',
+      amount: 'Amount',
+      currency: 'Currency',
+      singleCurrency: 'Single Currency',
+      splitPayment: 'Split Payment',
+      amountEGP: 'Amount (EGP)',
+      amountUSD: 'Amount (USD)',
+      totalAmount: 'Total Amount',
+      paymentMethod: 'Payment Method',
+      cash: 'Cash',
+      bankTransfer: 'Bank Transfer',
+      check: 'Check',
+      other: 'Other',
+      receiptNumber: 'Receipt Number',
+      description: 'Description',
+      paymentDate: 'Payment Date',
+      project: 'Project (Optional)',
+      section: 'Section (Optional)',
+      workQuantity: 'Work Quantity',
+      workUnit: 'Work Unit',
+      approvedBy: 'Approved By',
+      save: 'Save',
+      cancel: 'Cancel',
+      edit: 'Edit',
+      delete: 'Delete',
+      totalPayments: 'Total Payments',
+      totalAmountEGP: 'Total Amount (EGP)',
+      totalAmountUSD: 'Total Amount (USD)',
+      salaryPayments: 'Salary Payments',
+      advancePayments: 'Advance Payments',
+      loanPayments: 'Custody Payments',
+      dailyPayments: 'Daily Payments',
+      todayTotal: 'Today\'s Total',
+      thisMonthTotal: 'This Month\'s Total',
+      paymentCreated: 'Payment created successfully',
+      paymentUpdated: 'Payment updated successfully',
+      paymentDeleted: 'Payment deleted successfully',
+      error: 'An error occurred',
+      search: 'Search...',
+      filter: 'Filter',
+      clearFilters: 'Clear Filters',
+      export: 'Export to CSV',
+      selectEmployee: 'Select Employee',
+      selectProject: 'Select Project',
+      selectSection: 'Select Section',
+      all: 'All',
+      deleteConfirm: 'Are you sure you want to delete this payment?',
+      receiptNumberRequired: 'Receipt number must be unique',
+      dateCannotBeFuture: 'Date cannot be in the future',
+      amountMustBePositive: 'Amount must be positive',
+    },
+    ar: {
+      title: 'إدارة المدفوعات',
+      addPayment: 'إضافة دفعة',
+      editPayment: 'تعديل دفعة',
+      employee: 'الموظف',
+      paymentType: 'نوع الدفعة',
+      salary: 'راتب',
+      advance: 'سلفة',
+      loan: 'عهد',
+      onAccount: 'تحت الحساب',
+      daily: 'عمل يومي',
+      amount: 'المبلغ',
+      currency: 'العملة',
+      singleCurrency: 'عملة واحدة',
+      splitPayment: 'دفع مقسم',
+      amountEGP: 'المبلغ (جنيه)',
+      amountUSD: 'المبلغ (دولار)',
+      totalAmount: 'المبلغ الإجمالي',
+      paymentMethod: 'طريقة الدفع',
+      cash: 'نقداً',
+      bankTransfer: 'تحويل بنكي',
+      check: 'شيك',
+      other: 'أخرى',
+      receiptNumber: 'رقم الإيصال',
+      description: 'الوصف',
+      paymentDate: 'تاريخ الدفع',
+      project: 'المشروع (اختياري)',
+      section: 'القسم (اختياري)',
+      workQuantity: 'كمية العمل',
+      workUnit: 'وحدة العمل',
+      approvedBy: 'وافق عليه',
+      save: 'حفظ',
+      cancel: 'إلغاء',
+      edit: 'تعديل',
+      delete: 'حذف',
+      totalPayments: 'إجمالي المدفوعات',
+      totalAmountEGP: 'إجمالي المبلغ (جنيه)',
+      totalAmountUSD: 'إجمالي المبلغ (دولار)',
+      salaryPayments: 'مدفوعات الرواتب',
+      advancePayments: 'مدفوعات السلف',
+      loanPayments: 'مدفوعات العهد',
+      dailyPayments: 'المدفوعات اليومية',
+      todayTotal: 'إجمالي اليوم',
+      thisMonthTotal: 'إجمالي الشهر',
+      paymentCreated: 'تم إنشاء الدفعة بنجاح',
+      paymentUpdated: 'تم تحديث الدفعة بنجاح',
+      paymentDeleted: 'تم حذف الدفعة بنجاح',
+      error: 'حدث خطأ',
+      search: 'بحث...',
+      filter: 'تصفية',
+      clearFilters: 'مسح الفلاتر',
+      export: 'تصدير CSV',
+      selectEmployee: 'اختر الموظف',
+      selectProject: 'اختر المشروع',
+      selectSection: 'اختر القسم',
+      all: 'الكل',
+      deleteConfirm: 'هل أنت متأكد أنك تريد حذف هذه الدفعة؟',
+      receiptNumberRequired: 'رقم الإيصال يجب أن يكون فريداً',
+      dateCannotBeFuture: 'التاريخ لا يمكن أن يكون في المستقبل',
+      amountMustBePositive: 'المبلغ يجب أن يكون أكبر من صفر',
+    },
+  };
+
+  const t = translations[language];
+  const isRtl = language === 'ar';
+
+  useEffect(() => {
+    fetchPayments();
+    fetchEmployees();
+    fetchProjects();
+    fetchSections();
+    fetchStats();
+  }, [country]);
+
+  useEffect(() => {
+    filterPayments();
+  }, [payments, searchTerm, filters]);
+
+  const fetchPayments = async () => {
+    if (!country) {
+      console.log('Country not set, skipping payments fetch');
+      return;
+    }
+    try {
+      setLoading(true);
+      const paymentsData = await mockGetPayments(country);
+      setPayments((paymentsData as any) || []);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      toast.error(t.error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    if (!country) return;
+    try {
+      const employeesData = await mockGetEmployees(country);
+      setEmployees((employeesData as any) || []);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+    }
+  };
+
+  const fetchProjects = async () => {
+    if (!country) return;
+    try {
+      const projectsData = await mockGetProjects();
+      setProjects((projectsData as any) || []);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  };
+
+  const fetchSections = async () => {
+    if (!country) return;
+    try {
+      const sectionsData = await mockGetSections();
+      setSections((sectionsData as any) || []);
+    } catch (error) {
+      console.error('Error fetching sections:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    if (!country) return;
+    try {
+      const statsData = await mockGetPaymentStats(country);
+
+      // Calculate today's and this month's totals
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      const todayPayments = payments.filter(p => {
+        if (!p.paymentDate) return false;
+        const paymentDate = new Date(p.paymentDate);
+        if (Number.isNaN(paymentDate.getTime())) return false;
+        paymentDate.setHours(0, 0, 0, 0);
+        return paymentDate.getTime() === today.getTime();
+      });
+
+      const thisMonthPayments = payments.filter(p => {
+        if (!p.paymentDate) return false;
+        const paymentDate = new Date(p.paymentDate);
+        if (Number.isNaN(paymentDate.getTime())) return false;
+        return paymentDate >= thisMonthStart;
+      });
+
+      const todayTotalEGP = todayPayments.reduce((sum, p) =>
+        sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0
+      );
+      const todayTotalUSD = todayPayments.reduce((sum, p) =>
+        sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0
+      );
+
+      const monthTotalEGP = thisMonthPayments.reduce((sum, p) =>
+        sum + (p.amountEGP || (p.currency === 'EGP' ? p.amount : 0)), 0
+      );
+      const monthTotalUSD = thisMonthPayments.reduce((sum, p) =>
+        sum + (p.amountUSD || (p.currency === 'USD' ? p.amount : 0)), 0
+      );
+
+      setStats({
+        ...statsData,
+        todayTotal: todayTotalEGP + todayTotalUSD,
+        thisMonthTotal: monthTotalEGP + monthTotalUSD,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const filterPayments = () => {
+    let filtered = payments;
+
+    // Filter by employee
+    if (filters.employeeId) {
+      filtered = filtered.filter(p => p.employeeId === filters.employeeId);
+    }
+
+    // Filter by payment type
+    if (filters.paymentType) {
+      filtered = filtered.filter(p => p.paymentType === filters.paymentType);
+    }
+
+    // Filter by currency
+    if (filters.currency) {
+      filtered = filtered.filter(p => p.currency === filters.currency);
+    }
+
+    // Filter by project
+    if (filters.projectId) {
+      filtered = filtered.filter(p => p.projectId === filters.projectId);
+    }
+
+    // Filter by date range
+    if (filters.startDate) {
+      filtered = filtered.filter(p => new Date(p.paymentDate) >= new Date(filters.startDate));
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(p => new Date(p.paymentDate) <= new Date(filters.endDate));
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(p =>
+        p.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.receiptNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredPayments(filtered);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validation
+    if (new Date(formData.paymentDate) > new Date()) {
+      toast.error(t.dateCannotBeFuture);
+      return;
+    }
+
+    if (formData.amount <= 0 && formData.currency !== 'split') {
+      toast.error(t.amountMustBePositive);
+      return;
+    }
+
+    if (formData.currency === 'split') {
+      if (!formData.amountEGP || !formData.amountUSD || formData.amountEGP <= 0 || formData.amountUSD <= 0) {
+        toast.error(t.amountMustBePositive);
+        return;
+      }
+      formData.amount = formData.amountEGP + formData.amountUSD;
+    }
+
+    // Check receipt number uniqueness
+    if (formData.receiptNumber) {
+      const existingPayment = payments.find(
+        p => p.receiptNumber === formData.receiptNumber && p.id !== editingPayment?.id
+      );
+      if (existingPayment) {
+        toast.error(t.receiptNumberRequired);
+        return;
+      }
+    }
+
+    if (!country) return;
+    try {
+      const paymentData = { ...formData };
+      if (paymentData.currency !== 'split') {
+        // For single currency, set amountEGP or amountUSD based on currency
+        if (paymentData.currency === 'EGP') {
+          paymentData.amountEGP = paymentData.amount;
+          paymentData.amountUSD = 0;
+        } else {
+          paymentData.amountEGP = 0;
+          paymentData.amountUSD = paymentData.amount;
+        }
+      }
+
+      if (editingPayment) {
+        await mockUpdatePayment(country, editingPayment.id, paymentData);
+        toast.success(t.paymentUpdated);
+      } else {
+        await mockCreatePayment(country, paymentData);
+        toast.success(t.paymentCreated);
+      }
+      setShowForm(false);
+      setEditingPayment(null);
+      resetForm();
+      fetchPayments();
+      fetchStats();
+    } catch (error) {
+      console.error('Error saving payment:', error);
+      toast.error(t.error);
+    }
+  };
+
+  const handleEdit = (payment: Payment) => {
+    setEditingPayment(payment);
+    setFormData({
+      employeeId: payment.employeeId,
+      paymentType: payment.paymentType,
+      amount: payment.amount,
+      currency: payment.currency,
+      amountEGP: payment.amountEGP || (payment.currency === 'EGP' ? payment.amount : 0),
+      amountUSD: payment.amountUSD || (payment.currency === 'USD' ? payment.amount : 0),
+      paymentMethod: payment.paymentMethod,
+      receiptNumber: payment.receiptNumber || '',
+      description: payment.description,
+      paymentDate: payment.paymentDate.split('T')[0],
+      projectId: payment.projectId || '',
+      sectionId: payment.sectionId || '',
+      workQuantity: payment.workQuantity || 0,
+      workUnit: payment.workUnit || '',
+      approvedBy: payment.approvedBy,
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (payment: Payment) => {
+    if (!country) return;
+    if (window.confirm(t.deleteConfirm)) {
+      try {
+        await mockDeletePayment(country, payment.id);
+        toast.success(t.paymentDeleted);
+        fetchPayments();
+        fetchStats();
+      } catch (error) {
+        console.error('Error deleting payment:', error);
+        toast.error(t.error);
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      employeeId: '',
+      paymentType: 'salary',
+      amount: 0,
+      currency: 'EGP',
+      amountEGP: 0,
+      amountUSD: 0,
+      paymentMethod: 'cash',
+      receiptNumber: '',
+      description: '',
+      paymentDate: new Date().toISOString().split('T')[0],
+      projectId: '',
+      sectionId: '',
+      workQuantity: 0,
+      workUnit: '',
+      approvedBy: user?.name || '',
+    });
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingPayment(null);
+    resetForm();
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      employeeId: '',
+      paymentType: '',
+      currency: '',
+      projectId: '',
+      startDate: '',
+      endDate: '',
+    });
+    setSearchTerm('');
+  };
+
+  const exportToCSV = () => {
+    const headers = ['Date', 'Employee', 'Type', 'Amount EGP', 'Amount USD', 'Method', 'Receipt', 'Project'];
+    const rows = filteredPayments.map(p => [
+      p.paymentDate ? new Date(p.paymentDate).toLocaleDateString() : '',
+      p.employeeName || '',
+      p.paymentType,
+      p.amountEGP || (p.currency === 'EGP' ? p.amount : 0),
+      p.amountUSD || (p.currency === 'USD' ? p.amount : 0),
+      p.paymentMethod,
+      p.receiptNumber || '',
+      p.projectName || '',
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const formatCurrency = (amount: number, currency: string = 'EGP') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string | undefined | null) => {
+    if (!dateString) {
+      return 'N/A';
+    }
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return 'N/A';
+    }
+    return date.toLocaleDateString('en-US');
+  };
+
+  const getPaymentTypeLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      salary: t.salary,
+      advance: t.advance,
+      loan: t.loan,
+      on_account: t.onAccount,
+      daily: t.daily,
+    };
+    return labels[type] || type;
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    const labels: Record<string, string> = {
+      cash: t.cash,
+      bank_transfer: t.bankTransfer,
+      check: t.check,
+      other: t.other,
+    };
+    return labels[method] || method;
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="page-header">
+          <div className="space-y-2">
+            <div className="h-7 w-44 rounded-xl bg-slate-200 animate-pulse" />
+            <div className="h-4 w-32 rounded-lg bg-slate-100 animate-pulse" />
+          </div>
+          <div className="h-10 w-32 rounded-xl bg-slate-200 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="stat-card">
+              <div className="w-10 h-10 rounded-2xl bg-slate-200 animate-pulse mb-3" />
+              <div className="h-7 w-24 rounded-lg bg-slate-200 animate-pulse mb-2" />
+              <div className="h-3 w-20 rounded-lg bg-slate-100 animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="table-wrapper">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="px-6 py-4 border-b border-slate-100 last:border-0 flex gap-4">
+              <div className="h-4 w-28 rounded-lg bg-slate-200 animate-pulse" />
+              <div className="h-4 w-20 rounded-full bg-slate-100 animate-pulse" />
+              <div className="h-4 w-24 rounded-lg bg-slate-100 animate-pulse" />
+              <div className="h-4 flex-1 rounded-lg bg-slate-100 animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="page-subtitle">{'Manage payments & salaries'}</p>
+        </div>
+        {user?.role === 'admin' && (
+          <button onClick={() => setShowForm(true)} className="btn-primary">
+            <PlusIcon className="h-4 w-4" />
+            {t.addPayment}
+          </button>
+        )}
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: t.totalPayments,    val: stats.totalPayments,                        color: 'gradient-blue',    icon: '📋' },
+          { label: t.totalAmountEGP,   val: `${stats.totalAmountEGP?.toLocaleString() || 0} EGP`, color: 'gradient-success', icon: '💵' },
+          { label: t.totalAmountUSD,   val: `${stats.totalAmountUSD?.toLocaleString() || 0} USD`, color: 'gradient-brand',   icon: '💰' },
+          { label: t.todayTotal,       val: stats.todayTotal?.toLocaleString() || 0,    color: 'gradient-purple',  icon: '📅' },
+        ].map((s, i) => (
+          <div key={i} className="stat-card animate-slide-up" style={{ animationDelay: `${i * 70}ms` }}>
+            <div className={`w-10 h-10 rounded-2xl ${s.color} flex items-center justify-center text-base mb-3`}>{s.icon}</div>
+            <p className="stat-value">{s.val}</p>
+            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Search and Filters */}
+      <div className="card p-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <MagnifyingGlassIcon className="pointer-events-none absolute inset-y-0 start-3 flex h-full w-4 items-center text-slate-400" />
+              <input
+                type="text"
+                placeholder={t.search}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="form-input ps-9 w-full"
+              />
+            </div>
+            <button
+              onClick={exportToCSV}
+              className="btn-outline flex items-center gap-2 w-full sm:w-auto justify-center"
+            >
+              <ArrowDownTrayIcon className="h-4 w-4" />
+              {t.export}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 flex-wrap">
+            <select
+              value={filters.employeeId}
+              onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}
+              className="form-select"
+            >
+              <option value="">{t.all} {t.employee}</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>{emp.name}</option>
+              ))}
+            </select>
+            <select
+              value={filters.paymentType}
+              onChange={(e) => setFilters({ ...filters, paymentType: e.target.value })}
+              className="form-select"
+            >
+              <option value="">{t.all} {t.paymentType}</option>
+              <option value="salary">{t.salary}</option>
+              <option value="advance">{t.advance}</option>
+              <option value="loan">{t.loan}</option>
+              <option value="on_account">{t.onAccount}</option>
+              <option value="daily">{t.daily}</option>
+            </select>
+            <select
+              value={filters.currency}
+              onChange={(e) => setFilters({ ...filters, currency: e.target.value })}
+              className="form-select"
+            >
+              <option value="">{t.all} {t.currency}</option>
+              <option value="EGP">EGP</option>
+              <option value="USD">USD</option>
+              <option value="split">{t.splitPayment}</option>
+            </select>
+            <select
+              value={filters.projectId}
+              onChange={(e) => setFilters({ ...filters, projectId: e.target.value })}
+              className="form-select"
+            >
+              <option value="">{t.all} {t.project}</option>
+              {projects.map(proj => (
+                <option key={proj.id} value={proj.id}>{proj.name}</option>
+              ))}
+            </select>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+              placeholder="Start Date"
+              className="form-select"
+            />
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+              placeholder="End Date"
+              className="form-select"
+            />
+          </div>
+          <button
+            onClick={clearFilters}
+            className="btn btn-ghost btn-sm w-fit"
+          >
+            {t.clearFilters}
+          </button>
+        </div>
+      </div>
+
+      {/* Payment Form Modal */}
+      {showForm && user?.role === 'admin' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in" style={{ boxShadow: 'var(--shadow-xl)' }}>
+            <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-slate-100 rounded-t-2xl">
+              <h2 className="text-base font-bold text-slate-800">
+                {editingPayment ? t.editPayment : t.addPayment}
+              </h2>
+              <button onClick={handleCancel} className="btn-icon text-slate-400 hover:text-slate-600 hover:bg-slate-100">✕</button>
+            </div>
+            <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.employee} *
+                  </label>
+                  <select
+                    required
+                    value={formData.employeeId}
+                    onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t.selectEmployee}</option>
+                    {employees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} - {employee.position}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.paymentType} *
+                  </label>
+                  <select
+                    required
+                    value={formData.paymentType}
+                    onChange={(e) => setFormData({ ...formData, paymentType: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="salary">{t.salary}</option>
+                    <option value="advance">{t.advance}</option>
+                    <option value="loan">{t.loan}</option>
+                    <option value="on_account">{t.onAccount}</option>
+                    <option value="daily">{t.daily}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.currency} *
+                  </label>
+                  <select
+                    required
+                    value={formData.currency}
+                    onChange={(e) => setFormData({ ...formData, currency: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="EGP">EGP</option>
+                    <option value="USD">USD</option>
+                    <option value="split">{t.splitPayment}</option>
+                  </select>
+                </div>
+                {formData.currency === 'split' ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        {t.amountEGP} *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
+                        value={formData.amountEGP || 0}
+                        onChange={(e) => setFormData({ ...formData, amountEGP: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        {t.amountUSD} *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
+                        value={formData.amountUSD || 0}
+                        onChange={(e) => setFormData({ ...formData, amountUSD: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        {t.totalAmount}
+                      </label>
+                      <input
+                        type="text"
+                        value={(formData.amountEGP || 0) + (formData.amountUSD || 0)}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      {t.amount} *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      step="0.01"
+                      value={formData.amount}
+                      onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.paymentMethod} *
+                  </label>
+                  <select
+                    required
+                    value={formData.paymentMethod}
+                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="cash">{t.cash}</option>
+                    <option value="bank_transfer">{t.bankTransfer}</option>
+                    <option value="check">{t.check}</option>
+                    <option value="other">{t.other}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.receiptNumber}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.receiptNumber}
+                    onChange={(e) => setFormData({ ...formData, receiptNumber: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.paymentDate} *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    max={new Date().toISOString().split('T')[0]}
+                    value={formData.paymentDate}
+                    onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.project}
+                  </label>
+                  <select
+                    value={formData.projectId}
+                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t.selectProject}</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.section}
+                  </label>
+                  <select
+                    value={formData.sectionId}
+                    onChange={(e) => setFormData({ ...formData, sectionId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">{t.selectSection}</option>
+                    {sections
+                      .filter(s => !formData.projectId || s.projectId === formData.projectId)
+                      .map((section) => (
+                        <option key={section.id} value={section.id}>
+                          {section.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                {formData.paymentType === 'daily' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        {t.workQuantity} *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        step="0.01"
+                        value={formData.workQuantity}
+                        onChange={(e) => setFormData({ ...formData, workQuantity: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        {t.workUnit} *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.workUnit}
+                        onChange={(e) => setFormData({ ...formData, workUnit: e.target.value })}
+                        placeholder="m, km, etc."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    {t.approvedBy} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.approvedBy}
+                    onChange={(e) => setFormData({ ...formData, approvedBy: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {t.description} *
+                </label>
+                <textarea
+                  required
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={handleCancel} className="btn btn-ghost">{t.cancel}</button>
+                <button type="submit" className="btn btn-primary">{t.save}</button>
+              </div>
+            </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payments Table */}
+      <div className="table-wrapper">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr style={{ borderBottom: '1px solid rgb(241 245 249)' }}>
+                <th className="table-header">{t.employee}</th>
+                <th className="table-header">{t.paymentType}</th>
+                <th className="table-header">{t.amount}</th>
+                <th className="table-header">{t.paymentMethod}</th>
+                <th className="table-header">{t.receiptNumber}</th>
+                <th className="table-header">{t.paymentDate}</th>
+                <th className="table-header">{t.project}</th>
+                {user?.role === 'admin' && (
+                  <th className="table-header">{'Actions'}</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPayments.map((payment, idx) => (
+                <tr key={payment.id} className="table-row animate-fade-in" style={{ animationDelay: `${idx * 25}ms` }}>
+                  <td className="table-cell">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-800">{payment.employeeName}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{payment.employeeType}</div>
+                    </div>
+                  </td>
+                  <td className="table-cell">
+                    <span className={`badge ${
+                      payment.paymentType === 'salary'     ? 'badge-success' :
+                      payment.paymentType === 'advance'    ? 'badge-warning' :
+                      payment.paymentType === 'loan'       ? 'badge-danger' :
+                      payment.paymentType === 'daily'      ? 'badge-brand' :
+                      'badge-muted'
+                    }`}>
+                      {getPaymentTypeLabel(payment.paymentType)}
+                    </span>
+                  </td>
+                  <td className="table-cell text-sm font-semibold text-slate-800 tabular-nums">
+                    {payment.currency === 'split'
+                      ? `${(payment.amountEGP || 0).toLocaleString()} EGP + ${(payment.amountUSD || 0).toLocaleString()} USD`
+                      : `${payment.amount.toLocaleString()} ${payment.currency}`
+                    }
+                  </td>
+                  <td className="table-cell text-sm text-slate-700">
+                    {getPaymentMethodLabel(payment.paymentMethod)}
+                  </td>
+                  <td className="table-cell text-sm text-slate-700 tabular-nums">
+                    {payment.receiptNumber || '—'}
+                  </td>
+                  <td className="table-cell text-sm text-slate-700">
+                    {formatDate(payment.paymentDate)}
+                  </td>
+                  <td className="table-cell text-sm text-slate-700">
+                    {payment.projectName || '—'}
+                  </td>
+                  {user?.role === 'admin' && (
+                    <td className="table-cell">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => handleEdit(payment)} className="btn-icon text-slate-400 hover:text-brand-600 hover:bg-brand-50">
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => handleDelete(payment)} className="btn-icon text-slate-400 hover:text-red-600 hover:bg-red-50">
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {filteredPayments.length === 0 && (
+        <div className="card py-16 text-center animate-fade-in">
+          <div className="w-12 h-12 rounded-2xl gradient-brand flex items-center justify-center mx-auto mb-3">
+            <CurrencyDollarIcon className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-sm font-semibold text-slate-700">{'No payments found'}</p>
+          <p className="text-xs text-slate-400 mt-1">{'Try adjusting the filter criteria'}</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Payments;
