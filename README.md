@@ -18,7 +18,7 @@
 
 <br/>
 
-[**Live Demo →**](https://erp-helaly.vercel.app) &nbsp;|&nbsp; [Report a Bug](https://github.com/tarekokasha22/erp-helaly/issues/new?template=bug_report.md) &nbsp;|&nbsp; [Request a Feature](https://github.com/tarekokasha22/erp-helaly/issues/new?template=feature_request.md)
+[**Live Demo →**](https://helaly-erp.vercel.app) &nbsp;|&nbsp; [Report a Bug](https://github.com/tarekokasha22/erp-helaly/issues/new?template=bug_report.md) &nbsp;|&nbsp; [Request a Feature](https://github.com/tarekokasha22/erp-helaly/issues/new?template=feature_request.md)
 
 <br/>
 
